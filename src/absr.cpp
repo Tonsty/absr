@@ -12,6 +12,10 @@ void ABSR::abspline_fitting_3L() {
 	tensorbs_.fitting_3L(points_, normals_);
 }
 
+void ABSR::abspline_fitting_Juttler() {
+	tensorbs_.fitting_Juttler(points_, normals_);
+}
+
 void ABSR::resample_sdf(SDF &sdf) {
 	PointSet points;
 	sdf.topoints(points);

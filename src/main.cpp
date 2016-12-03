@@ -110,25 +110,30 @@ void vtk_mc_display(const SDF &sdf) {
 
 int main(int argc, char** argv) {
 
-	SDF sdf;
-	sdf.grid_size_ = 16;
-	sdf.voxel_length_ = 1.0/(sdf.grid_size_-1);
-	create_sdf(sdf);
-	//vtk_mc_display(sdf);
-	ABSR absr_sdf(sdf);
-	absr_sdf.abspline_fitting_sdf();
+	//SDF sdf;
+	//sdf.grid_size_ = 16;
+	//sdf.voxel_length_ = 1.0/(sdf.grid_size_-1);
+	//create_sdf(sdf);
+	////vtk_mc_display(sdf);
+	//ABSR absr_sdf(sdf);
+	//absr_sdf.abspline_fitting_sdf();
 
-	//PointSet points;
-	//NormalSet normals;
+	PointSet points;
+	NormalSet normals;
 	//IO::load_points_normals("duck.points", "duck.normals", points, normals);
+	//IO::load_points_normals("bunny.points", "bunny.normals", points, normals);
+	IO::load_points_normals("mannequin.points", "mannequin.normals", points, normals);
 	//ABSR absr_3L(points, normals);
 	//absr_3L.abspline_fitting_3L();
+	ABSR absr_Juttler(points, normals);
+	absr_Juttler.abspline_fitting_Juttler();
 
 	SDF mc_sdf;
-	mc_sdf.grid_size_ = 64;
+	mc_sdf.grid_size_ = 128;
 	mc_sdf.voxel_length_ = 1.0/(mc_sdf.grid_size_-1);
-	absr_sdf.resample_sdf(mc_sdf);
+	//absr_sdf.resample_sdf(mc_sdf);
 	//absr_3L.resample_sdf(mc_sdf);
+	absr_Juttler.resample_sdf(mc_sdf);
 
 	vtk_mc_display(mc_sdf);
 

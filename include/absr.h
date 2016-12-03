@@ -37,6 +37,8 @@ namespace absr {
 
 		void abspline_fitting_3L();
 
+		void abspline_fitting_Juttler();
+
 		void resample_sdf(SDF &sdf);
 
 	protected:
