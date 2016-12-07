@@ -2,6 +2,19 @@
 
 using namespace absr;
 
+void SDF::topoints_1d(Vector &points_1d) const {
+	const Size grid_size = grid_size_;
+	const Scalar voxel_length = voxel_length_;
+
+	Size npts = grid_size;
+	points_1d.resize(npts);
+
+	for (Index i = 0; i < grid_size; i++) {
+		Scalar pos = i*voxel_length;
+		points_1d(i) = pos;
+	}
+}
+
 void SDF::topoints(PointSet &points) const {
 	const Size grid_size = grid_size_;
 	const Scalar voxel_length = voxel_length_;

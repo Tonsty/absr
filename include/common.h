@@ -5,7 +5,7 @@
 #include <Eigen/Sparse>
 
 namespace absr {
-	typedef double Scalar;
+	typedef float Scalar;
 	typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
 	typedef Vector Point;
 	typedef Point Normal;
@@ -21,6 +21,8 @@ namespace absr {
 
 	typedef Eigen::SparseMatrix<Scalar> SparseMatrix;
 	typedef Eigen::Triplet<Scalar> Triplet;
+
+	typedef Matrix TransformMat;
 };
 
 #endif

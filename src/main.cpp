@@ -17,22 +17,9 @@
 
 #include <absr.h>
 #include <io.h>
+#include <boundingbox.h>
 
 using namespace absr;
-
-void create_sdf(SDF &sdf) {
-	PointSet points;
-	sdf.topoints(points);
-	
-	Size npts = points.rows();
-	sdf.values_.resize(npts);
-	Point center(3);
-	center << 0.5, 0.5, 0.5;
-	for (Index index = 0; index < npts; index++) {
-		Vector pc = points.row(index).transpose() - center;
-		sdf.values_(index) = pc.norm() - 0.3;
-	}
-}
 
 void vtk_mc_display(const SDF &sdf) {
 	vtkSmartPointer<vtkImageData> volume =
@@ -108,32 +95,78 @@ void vtk_mc_display(const SDF &sdf) {
 	}
 }
 
-int main(int argc, char** argv) {
+void test_sdf_fitting(SDF &mc_sdf) {
+	SDF sdf;
+	sdf.grid_size_ = 32;
+	sdf.voxel_length_ = 1.0/(sdf.grid_size_-1);
+	PointSet points;
+	sdf.topoints(points);
+	
+	Size npts = points.rows();
+	sdf.values_.resize(npts);
+	Point center(3);
+	center << 0.5, 0.5, 0.5;
+	for (Index index = 0; index < npts; index++) {
+		Vector pc = points.row(index).transpose() - center;
+		sdf.values_(index) = pc.norm() - 0.3;
+	}
 
-	//SDF sdf;
-	//sdf.grid_size_ = 16;
-	//sdf.voxel_length_ = 1.0/(sdf.grid_size_-1);
-	//create_sdf(sdf);
-	////vtk_mc_display(sdf);
-	//ABSR absr_sdf(sdf);
-	//absr_sdf.abspline_fitting_sdf();
+	//vtk_mc_display(sdf);
+	ABSR absr_sdf(sdf);
+	absr_sdf.abspline_fitting_sdf();
 
+	absr_sdf.resample_sdf(mc_sdf);
+}
+
+void test_3L_fitting(SDF &mc_sdf) {
 	PointSet points;
 	NormalSet normals;
 	//IO::load_points_normals("duck.points", "duck.normals", points, normals);
 	//IO::load_points_normals("bunny.points", "bunny.normals", points, normals);
 	IO::load_points_normals("mannequin.points", "mannequin.normals", points, normals);
-	//ABSR absr_3L(points, normals);
-	//absr_3L.abspline_fitting_3L();
+	BoundingBox bbox(points);
+	BoundingBox::normalize_to_unit_cube(points);
+
+	ABSR absr_3L(points, normals);
+	absr_3L.abspline_fitting_3L();
+
+	absr_3L.resample_sdf(mc_sdf);
+}
+
+void test_Juttler_fitting(SDF &mc_sdf) {
+	PointSet points;
+	NormalSet normals;
+	//IO::load_points_normals("duck.points", "duck.normals", points, normals);
+	IO::load_points_normals("bunny.points", "bunny.normals", points, normals);
+	//IO::load_points_normals("mannequin.points", "mannequin.normals", points, normals);
+	BoundingBox bbox(points);
+	BoundingBox::normalize_to_unit_cube(points);
+
 	ABSR absr_Juttler(points, normals);
-	absr_Juttler.abspline_fitting_Juttler();
+	absr_Juttler.abspline_fitting_3L();
+
+	absr_Juttler.resample_sdf(mc_sdf);
+}
+
+int main(int argc, char** argv) {
+
+	Vector v(9);
+	v << 1, 2, 3, 4, 5, 6, 7, 8, 9;
+	Eigen::Map<Matrix, Eigen::ColMajor, Eigen::InnerStride<>> m_v(v.data()+2, 3, 1, Eigen::InnerStride<>(3));
+	std::cout << m_v << std::endl;
+	//m_v << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+	//Vector v3 = Vector::Zero(3);
+	//m_v.middleRows(1,1) = v3.transpose();
+	//std::cout << m_v.middleRows(1, 1) << std::endl;
+	//std::cout << v << std::endl;
 
 	SDF mc_sdf;
-	mc_sdf.grid_size_ = 128;
+	mc_sdf.grid_size_ = 100;
 	mc_sdf.voxel_length_ = 1.0/(mc_sdf.grid_size_-1);
-	//absr_sdf.resample_sdf(mc_sdf);
-	//absr_3L.resample_sdf(mc_sdf);
-	absr_Juttler.resample_sdf(mc_sdf);
+
+	test_sdf_fitting(mc_sdf);
+	//test_3L_fitting(mc_sdf);
+	//test_Juttler_fitting(mc_sdf);
 
 	vtk_mc_display(mc_sdf);
 

@@ -6,6 +6,7 @@
 namespace absr {
 	struct SDF {
 		SDF() {}
+		void topoints_1d(Vector &points_1d) const;
 		void topoints(PointSet &points) const;
 		Vector values_;
 		Size grid_size_;

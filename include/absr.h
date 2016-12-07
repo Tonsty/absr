@@ -12,10 +12,7 @@ namespace absr {
 		Faces faces_;
 	};
 
-	struct BoundingBox {
-		Point low_;
-		Point high_;
-	};
+
 
 	class ABSR {
 
