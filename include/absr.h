@@ -30,11 +30,11 @@ namespace absr {
 
 		void build_sdf();
 
-		void abspline_fitting_sdf();
+		void abspline_fitting_sdf(Scalar lambda);
 
-		void abspline_fitting_3L();
+		void abspline_fitting_3L(Scalar lambda);
 
-		void abspline_fitting_Juttler();
+		void abspline_fitting_Juttler(Scalar lambda, Scalar kappa);
 
 		void resample_sdf(SDF &sdf);
 

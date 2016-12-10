@@ -3,7 +3,7 @@
 
 using namespace absr;
 
-static Size N = 128;
+Size N = 128;
 
 static struct NormalizedCubicSpline {
 	Matrix B, dB, d2B;
@@ -44,7 +44,7 @@ Matrix INTofMULT(const Matrix &A, const Matrix &B) {
 			Vector W = MULT(A.row(i), B.row(j));
 			//std::cerr << "W=\n" << W << std::endl; 
 			Scalar integral_sum = 0;
-			for(int k = 0; k < 7; k++) {
+			for(Index k = 0; k < 7; k++) {
 				integral_sum += W(k)/(k+1);
 			}
 			C(i,j) = integral_sum;
@@ -68,7 +68,7 @@ void precompute_Pi2(Matrix &Pi2) {
 	Scalar delta = (Scalar) 1.0/(N-3);
 	for (Index i = 0; i < N-3; i++) {
 		for (Index r = 0; r <= 3; r++) {
-			for (int s = 0; s <= 3; s++) {
+			for (Index s = 0; s <= 3; s++) {
 				Pi2(i+r, i+s) += pi2(r, s) * delta;
 			}
 		}
@@ -77,7 +77,7 @@ void precompute_Pi2(Matrix &Pi2) {
 
 void make_smooth_1d_mat(SparseMatrix &smooth_1d_mat) {
 
-	std::cerr << "prepare smooth_mat" << std::endl;
+	std::cerr << "\nprepare smooth_1d_mat:" << std::endl;
 
 	Matrix Pi2;
 	precompute_Pi2(Pi2);
@@ -118,7 +118,7 @@ void make_bs_iws(std::vector<std::pair<Index, Scalar>> &iws, Scalar pos) {
 
 void make_data_1d_mat(const Vector &points_1d, SparseMatrix &data_1d_mat) {
 
-	std::cerr << "prepare data_1d_mat" << std::endl;
+	std::cerr << "\nprepare data_1d_mat:" << std::endl;
 
 	Size npts = (Size) points_1d.size();
 	data_1d_mat.resize(npts, N);
@@ -159,7 +159,7 @@ void precompute_Pi0Pi1Pi2(Matrix &Pi0, Matrix &Pi1, Matrix &Pi2) {
 	Scalar delta = (Scalar) 1.0/(N-3);
 	for (Index i = 0; i < N-3; i++) {
 		for (Index r = 0; r <= 3; r++) {
-			for (int s = 0; s <= 3; s++) {
+			for (Index s = 0; s <= 3; s++) {
 				Pi0(i+r, i+s) += pi0(r, s) * delta;
 				Pi1(i+r, i+s) += pi1(r, s) * delta;
 				Pi2(i+r, i+s) += pi2(r, s) * delta;
@@ -170,7 +170,7 @@ void precompute_Pi0Pi1Pi2(Matrix &Pi0, Matrix &Pi1, Matrix &Pi2) {
 
 void make_smooth_mat(SparseMatrix &smooth_mat) {
 
-	std::cerr << "prepare smooth_mat" << std::endl;
+	std::cerr << "\nprepare smooth_mat:" << std::endl;
 
 	Matrix Pi0, Pi1, Pi2;
 	precompute_Pi0Pi1Pi2(Pi0, Pi1, Pi2);
@@ -238,7 +238,7 @@ void make_tbs_iws(std::vector<std::pair<Index, Scalar>> &iws, Scalar xpos, Scala
 
 void make_data_mat(const PointSet &points, SparseMatrix &data_mat) {
 
-	std::cerr << "prepare data_mat" << std::endl;
+	std::cerr << "\nprepare data_mat:" << std::endl;
 
 	Size npts = (Size) points.rows();
 	data_mat.resize(npts, N*N*N);
@@ -261,7 +261,7 @@ void make_data_mat(const PointSet &points, SparseMatrix &data_mat) {
 	std::cerr << "finished data_mat" << std::endl;
 }
 
-void TensorBSplines::fitting_sdf(const SDF &sdf) {
+void TensorBSplines::fitting_sdf(const SDF &sdf, Scalar lambda) {
 	const Vector &values = sdf.values_;
 	const Size grid_size = sdf.grid_size_;
 	const Scalar voxel_length = sdf.voxel_length_;
@@ -275,20 +275,21 @@ void TensorBSplines::fitting_sdf(const SDF &sdf) {
 		SparseMatrix data_mat;
 		make_data_mat(points, data_mat);
 
-		Scalar lambda = (Scalar) 0.1;
+		lambda *= grid_size * grid_size * grid_size;
 		SparseMatrix smooth_mat; 
 		make_smooth_mat(smooth_mat);
 
 		SparseMatrix left_mat = data_mat.transpose() * data_mat + smooth_mat * lambda;
 		Vector right_vec = data_mat.transpose() * values;
 
-		std::cerr << "begin solving" << std::endl;
+		std::cerr << "\nbegin global solving:" << std::endl;
+		std::cerr << "equation number = 1, equation size = " << grid_size*grid_size*grid_size << " * " << N*N*N << std::endl;
 
 		Eigen::ConjugateGradient<SparseMatrix> cg;
 		cg.compute(left_mat);
 		controls_ = cg.solve(right_vec);
 
-		std::cerr << "finished solving" << std::endl;
+		std::cerr << "finished global solving" << std::endl;
 	} else {
 		Vector points_1d;
 		sdf.topoints_1d(points_1d);
@@ -296,18 +297,19 @@ void TensorBSplines::fitting_sdf(const SDF &sdf) {
 		make_data_1d_mat(points_1d, data_1d_mat);
 		//std::cout << data_1d_mat.toDense() << std::endl;
 
-		Scalar lambda = (Scalar) 0.1;
+		lambda *= grid_size;
 		SparseMatrix smooth_1d_mat; 
 		make_smooth_1d_mat(smooth_1d_mat);
-		std::cout << smooth_1d_mat.toDense() << std::endl;
+		//std::cout << smooth_1d_mat.toDense() << std::endl;
 
 		SparseMatrix left_mat = data_1d_mat.transpose() * data_1d_mat + lambda * smooth_1d_mat;
 		Eigen::ConjugateGradient<SparseMatrix> cg;
 		cg.compute(left_mat);
 
-		std::cerr << "begin solving" << std::endl;
+		std::cerr << "\nbegin separate direction solving:" << std::endl;
 
-		std::cerr << "begin solving x direction" << std::endl;
+		std::cerr << "begin solving x direction:" << std::endl;
+		std::cerr << "equation number = " << grid_size*grid_size << ", equation size = " << grid_size << " * " << N << std::endl;
 		Vector values1(grid_size*grid_size*N);
 		for (Index k = 0; k < grid_size; k++) {
 			for (Index j = 0; j < grid_size; j++) {
@@ -318,8 +320,10 @@ void TensorBSplines::fitting_sdf(const SDF &sdf) {
 		}
 		std::cerr << "finished solving x direction" << std::endl;
 
-		std::cerr << "begin solving y direction" << std::endl;
+		std::cerr << "begin solving y direction:" << std::endl;
+		std::cerr << "equation number = " << grid_size*N << ", equation size = " << grid_size << " * " << N << std::endl;
 		Vector values2(grid_size*N*N);
+
 		for (Index h = 0; h < N; h++) {
 			Eigen::Map<Vector, Eigen::ColMajor, Eigen::InnerStride<>> map_value1(values1.data()+h, grid_size*grid_size, 1, Eigen::InnerStride<>(N));
 			Eigen::Map<Vector, Eigen::ColMajor, Eigen::InnerStride<>> map_value2(values2.data()+h, grid_size*N, 1, Eigen::InnerStride<>(N));
@@ -330,7 +334,8 @@ void TensorBSplines::fitting_sdf(const SDF &sdf) {
 		}
 		std::cerr << "finished solving y direction" << std::endl;
 
-		std::cerr << "begin solving z direction" << std::endl;
+		std::cerr << "begin solving z direction:" << std::endl;
+		std::cerr << "equation number = " << N*N << ", equation size = " << grid_size << " * " << N << std::endl;
 		Vector values3(N*N*N);
 		for (Index g = 0; g < N; g++) {
 			for (Index h = 0; h < N; h++) {
@@ -338,7 +343,7 @@ void TensorBSplines::fitting_sdf(const SDF &sdf) {
 				Eigen::Map<Vector, Eigen::ColMajor, Eigen::InnerStride<>> map_value3(values3.data()+g*N+h, N, 1, Eigen::InnerStride<>(N*N));
 				Vector right_vec = data_1d_mat.transpose() * map_value2;
 				map_value3 = cg.solve(right_vec);
-				std::cout << sqrtf( (left_mat * map_value3 - right_vec).squaredNorm()/N )<< std::endl;
+				//std::cout << sqrtf( (left_mat * map_value3 - right_vec).squaredNorm()/N )<< std::endl;
 			}
 		}
 		std::cerr << "finished solving z direction" << std::endl;
@@ -349,7 +354,7 @@ void TensorBSplines::fitting_sdf(const SDF &sdf) {
 	}
 }
 
-void TensorBSplines::fitting_3L(const PointSet &points, const NormalSet &normals) {
+void TensorBSplines::fitting_3L(const PointSet &points, const NormalSet &normals, Scalar lambda) {
 	Scalar epsilon = (Scalar) 0.01;
 	Size npts = (Size) points.rows();
 	PointSet points_3L(npts*3, 3);
@@ -362,7 +367,7 @@ void TensorBSplines::fitting_3L(const PointSet &points, const NormalSet &normals
 
 	//std::cerr << "data_mat=\n" << data_mat.toDense() << std::endl;
 
-	Scalar lambda = (Scalar)0.7*npts;
+	lambda *= npts;
 	SparseMatrix smooth_mat; 
 	make_smooth_mat(smooth_mat);
 
@@ -374,13 +379,14 @@ void TensorBSplines::fitting_3L(const PointSet &points, const NormalSet &normals
 	//std::cerr << "left_mat=\n" << left_mat.toDense() << std::endl;
 	//std::cout << "right_vec=\n" << right_vec << std::endl;
 
-	std::cerr << "begin solving" << std::endl;
+	std::cerr << "\nbegin solving 3L:" << std::endl;
+	std::cerr << "equation number = 1, equation size = " << 3*npts << " * " << N*N*N << std::endl;
 
 	Eigen::ConjugateGradient<SparseMatrix> cg;
 	cg.compute(left_mat);
 	controls_ = cg.solve(right_vec);
 
-	std::cerr << "finished solving" << std::endl;
+	std::cerr << "finished solving 3L" << std::endl;
 
 	//std::cout << "controls=\n" << controls_ << std::endl;
 }
@@ -467,14 +473,14 @@ void make_data_duvw_mat(const PointSet &points,
 }
 
 
-void TensorBSplines::fitting_Juttler(const PointSet &points, const NormalSet &normals) {
+void TensorBSplines::fitting_Juttler(const PointSet &points, const NormalSet &normals, Scalar lambda, Scalar kappa) {
 	SparseMatrix data_mat, du_mat, dv_mat, dw_mat;
 	make_data_duvw_mat(points, data_mat, du_mat, dv_mat, dw_mat);
 
 	//std::cerr << "data_mat=\n" << data_mat.toDense() << std::endl;
 
 	Size npts = (Size) points.rows();
-	Scalar lambda = (Scalar) 0.08*npts, kappa = (Scalar) 0.05;
+	lambda *= npts;
 	SparseMatrix smooth_mat; 
 	make_smooth_mat(smooth_mat);
 
@@ -492,13 +498,14 @@ void TensorBSplines::fitting_Juttler(const PointSet &points, const NormalSet &no
 	// std::cerr << "left_mat=\n" << left_mat.toDense() << std::endl;
 	// std::cout << "right_vec=\n" << right_vec << std::endl;
 
-	std::cerr << "begin solving" << std::endl;
+	std::cerr << "\nbegin solving Juttler" << std::endl;
+	std::cerr << "equation number = 1, equation size = " << npts << " * " << N*N*N << std::endl;
 
 	Eigen::ConjugateGradient<SparseMatrix> cg;
 	cg.compute(left_mat);
 	controls_ = cg.solve(right_vec);
 
-	std::cerr << "finished solving" << std::endl;
+	std::cerr << "finished solving Juttler" << std::endl;
 
 	//std::cout << "controls=\n" << controls_ << std::endl;
 }
