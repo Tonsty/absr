@@ -31,7 +31,7 @@ void FastMarching::compute(const PointSet &points) {
 	const Size grid_size = grid_size_;
 	const Scalar voxel_length = voxel_length_;
 
-	Scalar MAX_DIST = 0.03;//std::numeric_limits<Scalar>::max();
+	Scalar MAX_DIST = 4*voxel_length;//std::numeric_limits<Scalar>::max();
 
 	std::cerr << "\nbegin fast marching:" << std::endl;
 	std::cerr << "grid = "<< grid_size << " * " << grid_size << " * " << grid_size  << ", (narrow band = " << MAX_DIST <<" )" << std::endl;
@@ -201,6 +201,8 @@ void FastMarching::tagging() {
 		Index index = t.index_;
 		Scalar distance = t.distance_;
 		pq.pop();
+
+		if(abs(distance) < voxel_length) break;
 
 		flag_[index] = FIXED;
 		values_(index) = -values_(index);

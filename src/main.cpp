@@ -131,6 +131,13 @@ void vtk_mc_display(const SDF &sdf) {
 		plyWriter->SetFileName("mesh.ply");
 		plyWriter->SetInputConnection(reverse->GetOutputPort());
 		plyWriter->Write();
+
+		vtkSmartPointer<vtkXMLImageDataWriter> writer =
+			vtkSmartPointer<vtkXMLImageDataWriter>::New();
+		writer->SetFileName("volume.vti");
+
+		writer->SetInputConnection(volume->GetProducerPort());
+		writer->Write();	
 	}
 
 	interactor->Start();
