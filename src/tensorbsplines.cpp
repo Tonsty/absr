@@ -303,8 +303,12 @@ void TensorBSplines::fitting_sdf(const SDF &sdf, Scalar lambda) {
 		//std::cout << smooth_1d_mat.toDense() << std::endl;
 
 		SparseMatrix left_mat = data_1d_mat.transpose() * data_1d_mat + lambda * smooth_1d_mat;
-		Eigen::ConjugateGradient<SparseMatrix> cg;
-		cg.compute(left_mat);
+		Eigen::ConjugateGradient<SparseMatrix> solver;
+		solver.compute(left_mat);
+
+		//Matrix dense_left_mat = left_mat.toDense();
+		//Eigen::FullPivLU<Matrix> solver;
+		//solver.compute(dense_left_mat);
 
 		std::cerr << "\nbegin separate direction solving:" << std::endl;
 
@@ -315,7 +319,7 @@ void TensorBSplines::fitting_sdf(const SDF &sdf, Scalar lambda) {
 			for (Index j = 0; j < grid_size; j++) {
 				Index start_index = k*grid_size*grid_size + j*grid_size;
 				Vector right_vec = data_1d_mat.transpose() * values.middleRows(start_index, grid_size);
-				values1.middleRows(k*grid_size*N+j*N, N) = cg.solve(right_vec);	
+				values1.middleRows(k*grid_size*N+j*N, N) = solver.solve(right_vec); 
 			}
 		}
 		std::cerr << "finished solving x direction" << std::endl;
@@ -323,13 +327,12 @@ void TensorBSplines::fitting_sdf(const SDF &sdf, Scalar lambda) {
 		std::cerr << "begin solving y direction:" << std::endl;
 		std::cerr << "equation number = " << grid_size*N << ", equation size = " << grid_size << " * " << N << std::endl;
 		Vector values2(grid_size*N*N);
-
-		for (Index h = 0; h < N; h++) {
-			Eigen::Map<Vector, Eigen::ColMajor, Eigen::InnerStride<>> map_value1(values1.data()+h, grid_size*grid_size, 1, Eigen::InnerStride<>(N));
-			Eigen::Map<Vector, Eigen::ColMajor, Eigen::InnerStride<>> map_value2(values2.data()+h, grid_size*N, 1, Eigen::InnerStride<>(N));
-			for (Index k = 0; k < grid_size; k++) {
-				Vector right_vec = data_1d_mat.transpose() * map_value1.middleRows(k*grid_size, grid_size);
-				map_value2.middleRows(k*N, N) = cg.solve(right_vec);
+		for (Index k = 0; k < grid_size; k++) {
+			Eigen::Map<Matrix> map_values1(values1.data()+k*grid_size*N, N, grid_size);
+			Matrix map_values1_traspose = map_values1.transpose();
+			for (Index h = 0; h < N; h++) {
+				Vector right_vec = data_1d_mat.transpose() * map_values1_traspose.col(h);
+				values2.middleRows(k*N*N+h*N, N) = solver.solve(right_vec); 
 			}
 		}
 		std::cerr << "finished solving y direction" << std::endl;
@@ -337,13 +340,12 @@ void TensorBSplines::fitting_sdf(const SDF &sdf, Scalar lambda) {
 		std::cerr << "begin solving z direction:" << std::endl;
 		std::cerr << "equation number = " << N*N << ", equation size = " << grid_size << " * " << N << std::endl;
 		Vector values3(N*N*N);
-		for (Index g = 0; g < N; g++) {
-			for (Index h = 0; h < N; h++) {
-				Eigen::Map<Vector, Eigen::ColMajor, Eigen::InnerStride<>> map_value2(values2.data()+g*N+h, grid_size, 1, Eigen::InnerStride<>(N*N));
-				Eigen::Map<Vector, Eigen::ColMajor, Eigen::InnerStride<>> map_value3(values3.data()+g*N+h, N, 1, Eigen::InnerStride<>(N*N));
-				Vector right_vec = data_1d_mat.transpose() * map_value2;
-				map_value3 = cg.solve(right_vec);
-				//std::cout << sqrtf( (left_mat * map_value3 - right_vec).squaredNorm()/N )<< std::endl;
+		Eigen::Map<Matrix> map_values2(values2.data(), N*N, grid_size);
+		Matrix map_values2_transpose = map_values2.transpose();
+		for (Index i = 0; i < N; i++) {
+			for (Index j = 0; j < N; j++) {
+				Vector right_vec = data_1d_mat.transpose() * map_values2_transpose.col(i*N+j);
+				values3.middleRows(i*N*N+j*N, N) = solver.solve(right_vec); 
 			}
 		}
 		std::cerr << "finished solving z direction" << std::endl;
@@ -512,21 +514,52 @@ void TensorBSplines::fitting_Juttler(const PointSet &points, const NormalSet &no
 
 void TensorBSplines::evaluate(const PointSet &points, Vector &values) {
 	Size npts = (Size) points.rows();
-	values.resize(npts, 1);
+	values = Vector::Zero(npts);
 
-	for (Index row_index = 0; row_index < npts; row_index++) {
-		Point point = points.row(row_index);
-		Scalar xpos = point.x(), ypos = point.y(), zpos = point.z();
+	std::cerr << "begin evaluation:" << std::endl;
 
-		std::vector<std::pair<Index, Scalar>> iws;
-		make_tbs_iws(iws, xpos, ypos, zpos);
+	Scalar delta = (Scalar) 1.0/(N-3);
+	Arrayi ijk = (points/delta).array().floor().cast<Index>();
+	for(Index h = 0; h < npts; h++) ijk(h,0) = ijk(h,0) < (N-3) ? ijk(h,0) : (N-4);
+	for(Index h = 0; h < npts; h++) ijk(h,1) = ijk(h,1) < (N-3) ? ijk(h,1) : (N-4);
+	for(Index h = 0; h < npts; h++) ijk(h,2) = ijk(h,2) < (N-3) ? ijk(h,2) : (N-4);
 
-		Scalar sum_value = 0;
-		for(auto it = iws.begin(); it!= iws.end(); it++) {
-			Index control_index = it->first;
-			Scalar weight = it->second;
-			sum_value += controls_(control_index) * weight;
+	Array uvw = (points/delta).array() - ijk.cast<Scalar>();
+
+	const Matrix &B = ncs.B;
+	Array U(npts, 4), V(npts, 4), W(npts, 4);
+	U.col(0) = V.col(0) = W.col(0) = Array::Ones(npts, 1);
+	U.col(1) = uvw.col(0);        V.col(1) = uvw.col(1);        W.col(1) = uvw.col(2);
+	U.col(2) = U.col(1)*U.col(1); V.col(2) = V.col(1)*V.col(1); W.col(2) = W.col(1)*W.col(1);
+	U.col(3) = U.col(1)*U.col(2); V.col(3) = V.col(1)*V.col(2); W.col(3) = W.col(1)*W.col(2);
+
+	Matrix bu = U.matrix()*B.transpose(), bv = V.matrix()*B.transpose(), bw = W.matrix()*B.transpose();
+
+	for (Index kk = 0; kk <= 3; kk++) {
+		for (Index jj = 0; jj <= 3; jj++) {
+			for (Index ii = 0; ii <= 3; ii++) {
+				Arrayi indices = N*N*(ijk.col(2)+kk) + N*(ijk.col(1)+jj) + ijk.col(0)+ii;
+				Array bubvbw = bu.col(ii).array()*bv.col(jj).array()*bw.col(kk).array();
+				for(Index h = 0; h < npts; h++) values(h) += controls_(indices(h))*bubvbw(h);
+			}
 		}
-		values(row_index) = sum_value;
 	}
+
+	//for (Index row_index = 0; row_index < npts; row_index++) {
+	//	Point point = points.row(row_index);
+	//	Scalar xpos = point.x(), ypos = point.y(), zpos = point.z();
+
+	//	std::vector<std::pair<Index, Scalar>> iws;
+	//	make_tbs_iws(iws, xpos, ypos, zpos);
+
+	//	Scalar sum_value = 0;
+	//	for(auto it = iws.begin(); it!= iws.end(); it++) {
+	//		Index control_index = it->first;
+	//		Scalar weight = it->second;
+	//		sum_value += controls_(control_index) * weight;
+	//	}
+	//	values(row_index) = sum_value;
+	//}
+
+	std::cerr << "finished evaluation" << std::endl;
 }

@@ -13,11 +13,18 @@ namespace absr {
 	typedef PointSet NormalSet;
 	typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
 
-	typedef PointSet Vertices;
 	typedef int Index;
-	typedef Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic> Faces;
+	typedef Index Size;
 
-	typedef int Size;
+	typedef Eigen::Matrix<Index, Eigen::Dynamic, 1> Vectori;
+	typedef Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic> Matrixi;
+
+	typedef Eigen::Array<Scalar, Eigen::Dynamic, Eigen::Dynamic> Array;
+	typedef Eigen::Array<Index, Eigen::Dynamic, Eigen::Dynamic> Arrayi;
+
+	typedef PointSet Vertices;
+
+	typedef Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic> Faces;
 
 	typedef Eigen::SparseMatrix<Scalar> SparseMatrix;
 	typedef Eigen::Triplet<Scalar> Triplet;

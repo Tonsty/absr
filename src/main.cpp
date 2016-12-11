@@ -56,10 +56,13 @@ void vtk_save(const SDF &sdf) {
 	writer->Write();	
 }
 
-void vtk_mc_display(const SDF &sdf) {
+void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0) {
+
+	std::cerr << "begin marchingcubes:" << std::endl;
+
 	vtkSmartPointer<vtkImageData> volume =
 		vtkSmartPointer<vtkImageData>::New();
-	double isoValue = 0.0;
+	double isoValue = isovalue;
 
 	vtkSmartPointer<vtkMarchingCubes> surface = 
 		vtkSmartPointer<vtkMarchingCubes>::New();
@@ -119,6 +122,8 @@ void vtk_mc_display(const SDF &sdf) {
 
 	renderWindow->Render();
 
+	std::cerr << "finished marchingcubes" << std::endl;
+
 	if (save) {
 		vtkSmartPointer<vtkReverseSense> reverse = 
 			vtkSmartPointer<vtkReverseSense>::New();
@@ -134,7 +139,7 @@ void vtk_mc_display(const SDF &sdf) {
 
 		vtkSmartPointer<vtkXMLImageDataWriter> writer =
 			vtkSmartPointer<vtkXMLImageDataWriter>::New();
-		writer->SetFileName("volume.vti");
+		writer->SetFileName("volume_fitting.vti");
 
 		writer->SetInputConnection(volume->GetProducerPort());
 		writer->Write();	
@@ -204,7 +209,7 @@ void test_sdf_fitting(SDF &mc_sdf, const std::string points_file, const std::str
 		sdf.values_.swap(fm.values_);
 	}
 
-	//if(save) vtk_save(sdf);
+	if(save) vtk_save(sdf);
 	//exit(0);
 
 	//vtk_mc_display(sdf);
@@ -295,7 +300,8 @@ int main(int argc, char** argv) {
 	case 2 : {test_Juttler_fitting(mc_sdf, points_file, normals_file, lambda, kappa); break;}
 	}
 
-	vtk_mc_display(mc_sdf);
+	if(method == 2) vtk_mc_display(mc_sdf, -0.5/sdf_grid_size);
+	else vtk_mc_display(mc_sdf);
 
 	return 0;
 }

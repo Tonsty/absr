@@ -31,10 +31,12 @@ void FastMarching::compute(const PointSet &points) {
 	const Size grid_size = grid_size_;
 	const Scalar voxel_length = voxel_length_;
 
-	Scalar MAX_DIST = 4*voxel_length;//std::numeric_limits<Scalar>::max();
+	Size narrow_band_width = 4;
+
+	Scalar MAX_DIST = narrow_band_width*voxel_length;//std::numeric_limits<Scalar>::max();
 
 	std::cerr << "\nbegin fast marching:" << std::endl;
-	std::cerr << "grid = "<< grid_size << " * " << grid_size << " * " << grid_size  << ", (narrow band = " << MAX_DIST <<" )" << std::endl;
+	std::cerr << "grid = "<< grid_size << " * " << grid_size << " * " << grid_size  << ", (narrow band with = " << narrow_band_width <<" )" << std::endl;
 
 	values_ = Vector::Constant(grid_size*grid_size*grid_size, MAX_DIST);
 	flag_ = std::vector<State>(grid_size*grid_size*grid_size, INACTIVE);
