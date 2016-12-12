@@ -244,18 +244,48 @@ void make_data_mat(const PointSet &points, SparseMatrix &data_mat) {
 	data_mat.resize(npts, N*N*N);
 
 	std::vector<Triplet> data_list;
-	for (Index row_index = 0; row_index < npts; row_index++) {
-		Point point = points.row(row_index);
-		Scalar xpos = point.x(), ypos = point.y(), zpos = point.z();
+	Scalar delta = (Scalar) 1.0/(N-3);
+	Arrayi ijk = (points/delta).array().floor().cast<Index>();
+	for(Index h = 0; h < npts; h++) ijk(h,0) = ijk(h,0) < (N-3) ? ijk(h,0) : (N-4);
+	for(Index h = 0; h < npts; h++) ijk(h,1) = ijk(h,1) < (N-3) ? ijk(h,1) : (N-4);
+	for(Index h = 0; h < npts; h++) ijk(h,2) = ijk(h,2) < (N-3) ? ijk(h,2) : (N-4);
 
-		std::vector<std::pair<Index, Scalar>> iws;
-		make_tbs_iws(iws, xpos, ypos, zpos);
-		for(auto it = iws.begin(); it!= iws.end(); it++) {
-			Index column_index = it->first;
-			Scalar weight = it->second;
-			data_list.push_back(Triplet(row_index, column_index, weight));
+	Array uvw = (points/delta).array() - ijk.cast<Scalar>();
+
+	const Matrix &B = ncs.B;
+	Array U(npts, 4), V(npts, 4), W(npts, 4);
+	U.col(0) = V.col(0) = W.col(0) = Array::Ones(npts, 1);
+	U.col(1) = uvw.col(0);        V.col(1) = uvw.col(1);        W.col(1) = uvw.col(2);
+	U.col(2) = U.col(1)*U.col(1); V.col(2) = V.col(1)*V.col(1); W.col(2) = W.col(1)*W.col(1);
+	U.col(3) = U.col(1)*U.col(2); V.col(3) = V.col(1)*V.col(2); W.col(3) = W.col(1)*W.col(2);
+
+	Matrix bu = U.matrix()*B.transpose(), bv = V.matrix()*B.transpose(), bw = W.matrix()*B.transpose();
+
+	for (Index kk = 0; kk <= 3; kk++) {
+		for (Index jj = 0; jj <= 3; jj++) {
+			for (Index ii = 0; ii <= 3; ii++) {
+				Arrayi indices = N*N*(ijk.col(2)+kk) + N*(ijk.col(1)+jj) + ijk.col(0)+ii;
+				Array bubvbw = bu.col(ii).array()*bv.col(jj).array()*bw.col(kk).array();
+				for(Index h = 0; h < npts; h++) {
+					Index row_index = h, column_index = indices(h);
+					Scalar weight = bubvbw(h);
+					data_list.push_back(Triplet(row_index, column_index, weight));
+				}
+			}
 		}
 	}
+	//for (Index row_index = 0; row_index < npts; row_index++) {
+	//	Point point = points.row(row_index);
+	//	Scalar xpos = point.x(), ypos = point.y(), zpos = point.z();
+
+	//	std::vector<std::pair<Index, Scalar>> iws;
+	//	make_tbs_iws(iws, xpos, ypos, zpos);
+	//	for(auto it = iws.begin(); it!= iws.end(); it++) {
+	//		Index column_index = it->first;
+	//		Scalar weight = it->second;
+	//		data_list.push_back(Triplet(row_index, column_index, weight));
+	//	}
+	//}
 	data_mat.setFromTriplets(data_list.begin(), data_list.end());
 
 	std::cerr << "finished data_mat" << std::endl;
@@ -356,8 +386,7 @@ void TensorBSplines::fitting_sdf(const SDF &sdf, Scalar lambda) {
 	}
 }
 
-void TensorBSplines::fitting_3L(const PointSet &points, const NormalSet &normals, Scalar lambda) {
-	Scalar epsilon = (Scalar) 0.01;
+void TensorBSplines::fitting_3L(const PointSet &points, const NormalSet &normals, Scalar lambda, Scalar epsilon) {
 	Size npts = (Size) points.rows();
 	PointSet points_3L(npts*3, 3);
 	points_3L << points, points+epsilon*normals, points-epsilon*normals;
@@ -449,23 +478,61 @@ void make_data_duvw_mat(const PointSet &points,
 	dw_mat.resize(npts, N*N*N);
 
 	std::vector<Triplet> data_list, du_list, dv_list, dw_list;
-	for (Index row_index = 0; row_index < npts; row_index++) {
-		Point point = points.row(row_index);
-		Scalar xpos = point.x(), ypos = point.y(), zpos = point.z();
+	Scalar delta = (Scalar) 1.0/(N-3);
+	Arrayi ijk = (points/delta).array().floor().cast<Index>();
+	for(Index h = 0; h < npts; h++) ijk(h,0) = ijk(h,0) < (N-3) ? ijk(h,0) : (N-4);
+	for(Index h = 0; h < npts; h++) ijk(h,1) = ijk(h,1) < (N-3) ? ijk(h,1) : (N-4);
+	for(Index h = 0; h < npts; h++) ijk(h,2) = ijk(h,2) < (N-3) ? ijk(h,2) : (N-4);
 
-		std::vector<std::pair<Index, Scalar>> iws;
-		std::vector<Scalar> du_ws, dv_ws, dw_ws;
-		make_tbs_iws_duvw_ws(iws, du_ws, dv_ws, dw_ws, xpos, ypos, zpos);
-		Index h = 0;
-		for(auto it = iws.begin(); it!= iws.end(); it++, h++) {
-			Index column_index = it->first;
-			Scalar weight = it->second, du_weight = du_ws[h], dv_weight = dv_ws[h], dw_weight = dw_ws[h];
-			data_list.push_back(Triplet(row_index, column_index, weight));
-			du_list.push_back(Triplet(row_index, column_index, du_weight));
-			dv_list.push_back(Triplet(row_index, column_index, dv_weight));
-			dw_list.push_back(Triplet(row_index, column_index, dw_weight));
+	Array uvw = (points/delta).array() - ijk.cast<Scalar>();
+
+	const Matrix &B = ncs.B;
+	const Matrix &dB = ncs.dB;
+	Array U(npts, 4), V(npts, 4), W(npts, 4);
+	U.col(0) = V.col(0) = W.col(0) = Array::Ones(npts, 1);
+	U.col(1) = uvw.col(0);        V.col(1) = uvw.col(1);        W.col(1) = uvw.col(2);
+	U.col(2) = U.col(1)*U.col(1); V.col(2) = V.col(1)*V.col(1); W.col(2) = W.col(1)*W.col(1);
+	U.col(3) = U.col(1)*U.col(2); V.col(3) = V.col(1)*V.col(2); W.col(3) = W.col(1)*W.col(2);
+
+	Matrix bu = U.matrix()*B.transpose(), bv = V.matrix()*B.transpose(), bw = W.matrix()*B.transpose();
+	Matrix dbu = U.matrix()*dB.transpose(), dbv = V.matrix()*dB.transpose(), dbw = W.matrix()*dB.transpose();
+
+	for (Index kk = 0; kk <= 3; kk++) {
+		for (Index jj = 0; jj <= 3; jj++) {
+			for (Index ii = 0; ii <= 3; ii++) {
+				Arrayi indices = N*N*(ijk.col(2)+kk) + N*(ijk.col(1)+jj) + ijk.col(0)+ii;
+				Array bubvbw = bu.col(ii).array()*bv.col(jj).array()*bw.col(kk).array();
+				Array dbubvbw = dbu.col(ii).array()*bv.col(jj).array()*bw.col(kk).array();
+				Array budbvbw = bu.col(ii).array()*dbv.col(jj).array()*bw.col(kk).array();
+				Array bubvdbw = bu.col(ii).array()*bv.col(jj).array()*dbw.col(kk).array();
+				for(Index h = 0; h < npts; h++) {
+					Index row_index = h, column_index = indices(h);
+					Scalar weight = bubvbw(h), du_weight = dbubvbw(h), dv_weight = budbvbw(h), dw_weight = bubvdbw(h);
+					data_list.push_back(Triplet(row_index, column_index, weight));
+					du_list.push_back(Triplet(row_index, column_index, du_weight));
+					dv_list.push_back(Triplet(row_index, column_index, dv_weight));
+					dw_list.push_back(Triplet(row_index, column_index, dw_weight));
+				}
+			}
 		}
 	}
+	//for (Index row_index = 0; row_index < npts; row_index++) {
+	//	Point point = points.row(row_index);
+	//	Scalar xpos = point.x(), ypos = point.y(), zpos = point.z();
+
+	//	std::vector<std::pair<Index, Scalar>> iws;
+	//	std::vector<Scalar> du_ws, dv_ws, dw_ws;
+	//	make_tbs_iws_duvw_ws(iws, du_ws, dv_ws, dw_ws, xpos, ypos, zpos);
+	//	Index h = 0;
+	//	for(auto it = iws.begin(); it!= iws.end(); it++, h++) {
+	//		Index column_index = it->first;
+	//		Scalar weight = it->second, du_weight = du_ws[h], dv_weight = dv_ws[h], dw_weight = dw_ws[h];
+	//		data_list.push_back(Triplet(row_index, column_index, weight));
+	//		du_list.push_back(Triplet(row_index, column_index, du_weight));
+	//		dv_list.push_back(Triplet(row_index, column_index, dv_weight));
+	//		dw_list.push_back(Triplet(row_index, column_index, dw_weight));
+	//	}
+	//}
 	data_mat.setFromTriplets(data_list.begin(), data_list.end());
 	du_mat.setFromTriplets(du_list.begin(), du_list.end());
 	dv_mat.setFromTriplets(dv_list.begin(), dv_list.end());

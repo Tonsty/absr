@@ -11,6 +11,7 @@
 #include <vtkRenderWindowInteractor.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderer.h>
+#include <vtkInteractorStyleTrackballCamera.h>
 
 #include <vtkCubeSource.h>
 #include <vtkProperty.h>
@@ -120,7 +121,10 @@ void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0) {
 		vtkSmartPointer<vtkRenderWindowInteractor>::New();
 	interactor->SetRenderWindow(renderWindow);
 
-	renderWindow->Render();
+	vtkSmartPointer<vtkInteractorStyleTrackballCamera> style = 
+		vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New(); //like paraview
+
+	interactor->SetInteractorStyle( style );
 
 	std::cerr << "finished marchingcubes" << std::endl;
 
@@ -145,6 +149,7 @@ void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0) {
 		writer->Write();	
 	}
 
+	renderWindow->Render();
 	interactor->Start();
 
 	float delta = 0.002;
@@ -157,7 +162,10 @@ void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0) {
 	}
 }
 
-void test_sdf_fitting(SDF &mc_sdf, const std::string points_file, const std::string normals_file, Scalar lambda, Size sdf_grid_size) {
+void test_sdf_fitting(SDF &mc_sdf, 
+	const std::string points_file, const std::string normals_file, 
+	Scalar lambda, Scalar narrow_band_width, Size sdf_grid_size) {
+	
 	SDF sdf;
 	sdf.grid_size_ = sdf_grid_size;
 	sdf.voxel_length_ = 1.0/(sdf.grid_size_-1);
@@ -203,7 +211,7 @@ void test_sdf_fitting(SDF &mc_sdf, const std::string points_file, const std::str
 		FastMarching fm;
 		fm.grid_size_ = sdf.grid_size_;
 		fm.voxel_length_ = sdf.voxel_length_;
-		fm.compute(points);
+		fm.compute(points, narrow_band_width);
 		fm.tagging();
 
 		sdf.values_.swap(fm.values_);
@@ -221,7 +229,7 @@ void test_sdf_fitting(SDF &mc_sdf, const std::string points_file, const std::str
 	absr_sdf.resample_sdf(mc_sdf);
 }
 
-void test_3L_fitting(SDF &mc_sdf, const std::string points_file, const std::string normals_file, Scalar lambda) {
+void test_3L_fitting(SDF &mc_sdf, const std::string points_file, const std::string normals_file, Scalar lambda, Scalar epsilon) {
 	PointSet points;
 	NormalSet normals;
 	//IO::load_points_normals("duck.points", "duck.normals", points, normals);
@@ -233,7 +241,7 @@ void test_3L_fitting(SDF &mc_sdf, const std::string points_file, const std::stri
 	BoundingBox::normalize_to_unit_cube(points);
 
 	ABSR absr_3L(points, normals);
-	absr_3L.abspline_fitting_3L(lambda);
+	absr_3L.abspline_fitting_3L(lambda, epsilon);
 
 	absr_3L.resample_sdf(mc_sdf);
 }
@@ -262,7 +270,7 @@ int main(int argc, char** argv) {
 	std::cerr << "points_file = " << points_file << std::endl;
 	std::cerr << "normals_file = " << normals_file << std::endl;
 
-	Scalar lambda = 0, kappa = 0;
+	Scalar lambda = 0, aux;
 	Size mc_grid_size = 128, sdf_grid_size = 256;
 	std::stringstream ss3, ss4, ss5, ss6, ss7, ss8, ss9;
 
@@ -271,16 +279,28 @@ int main(int argc, char** argv) {
 	if(argc>4) {ss4.str(argv[4]); ss4>>N;}
 	if(argc>5) {ss5.str(argv[5]); ss5>>mc_grid_size;}
 	if(argc>6) {ss6.str(argv[6]); ss6>>lambda;} 
-	if(argc>7) {ss7.str(argv[7]); ss7>>kappa;}
+	if(argc>7) {ss7.str(argv[7]); ss7>>aux;}
 	if(argc>8) {ss8.str(argv[8]); ss8>>save;}
 	if(argc>9) {ss9.str(argv[9]); ss9>>sdf_grid_size;}
 
+	Scalar narrow_band_width = (Scalar) 3.5, epsilon = (Scalar) 0.01, kappa = (Scalar) 0.05;
 
 	std::cerr << "method = " << method << std::endl;
 	std::cerr << "N = " << N << std::endl;
 	std::cerr << "mc_grid_size = " << mc_grid_size << std::endl;
 	std::cerr << "lambda = " << lambda << std::endl;
-	if(method == 2) std::cerr << "kappa = " << kappa << std::endl;
+	if(method == 0) {
+		narrow_band_width = aux;
+		std::cerr << "narrow_band_width = " << narrow_band_width << std::endl;
+	}
+	else if (method == 1) {
+		epsilon = aux;
+		std::cerr << "epsilon = " << epsilon << std::endl;
+	}
+	else if(method == 2) {
+		kappa = aux;
+		std::cerr << "kappa = " << kappa << std::endl;
+	}
 	std::cerr << "save = " << save << std::endl;
 	if(method == 0) std::cerr << "sdf_grid_size = " << sdf_grid_size << std::endl;
 
@@ -295,8 +315,8 @@ int main(int argc, char** argv) {
 	mc_sdf.voxel_length_ = 1.0/(mc_sdf.grid_size_-1);
 
 	switch(method) {
-	case 0 : {test_sdf_fitting(mc_sdf, points_file, normals_file, lambda, sdf_grid_size); break;}
-	case 1 : {test_3L_fitting(mc_sdf, points_file, normals_file, lambda); break;}
+	case 0 : {test_sdf_fitting(mc_sdf, points_file, normals_file, lambda, narrow_band_width, sdf_grid_size); break;}
+	case 1 : {test_3L_fitting(mc_sdf, points_file, normals_file, lambda, epsilon); break;}
 	case 2 : {test_Juttler_fitting(mc_sdf, points_file, normals_file, lambda, kappa); break;}
 	}
 

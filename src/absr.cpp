@@ -8,8 +8,8 @@ void ABSR::abspline_fitting_sdf(Scalar lambda) {
 	tensorbs_.fitting_sdf(sdf_, lambda);
 }
 
-void ABSR::abspline_fitting_3L(Scalar lambda) {
-	tensorbs_.fitting_3L(points_, normals_, lambda);
+void ABSR::abspline_fitting_3L(Scalar lambda, Scalar epsilon) {
+	tensorbs_.fitting_3L(points_, normals_, lambda, epsilon);
 }
 
 void ABSR::abspline_fitting_Juttler(Scalar lambda, Scalar kappa) {

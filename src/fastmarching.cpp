@@ -26,17 +26,15 @@ struct RNode {
 };
 
 
-void FastMarching::compute(const PointSet &points) {
+void FastMarching::compute(const PointSet &points, Scalar narrow_band_width) {
 
 	const Size grid_size = grid_size_;
 	const Scalar voxel_length = voxel_length_;
 
-	Size narrow_band_width = 4;
-
 	Scalar MAX_DIST = narrow_band_width*voxel_length;//std::numeric_limits<Scalar>::max();
 
 	std::cerr << "\nbegin fast marching:" << std::endl;
-	std::cerr << "grid = "<< grid_size << " * " << grid_size << " * " << grid_size  << ", (narrow band with = " << narrow_band_width <<" )" << std::endl;
+	std::cerr << "grid = "<< grid_size << " * " << grid_size << " * " << grid_size  << ", (MAX_DIST = " << MAX_DIST <<" )" << std::endl;
 
 	values_ = Vector::Constant(grid_size*grid_size*grid_size, MAX_DIST);
 	flag_ = std::vector<State>(grid_size*grid_size*grid_size, INACTIVE);
@@ -48,9 +46,9 @@ void FastMarching::compute(const PointSet &points) {
 		Scalar xpos = pt(0), ypos = pt(1), zpos = pt(2);
 		Index xi = (Index)(xpos/voxel_length), yi = (Index)(ypos/voxel_length), zi = (Index)(zpos/voxel_length);
 
-		Index xbegin = ( (xpos-xi*voxel_length)/voxel_length > 0.5 ) ? xi : ((xi-1)>=0?(xi-1):0);
-		Index ybegin = ( (ypos-yi*voxel_length)/voxel_length > 0.5 ) ? yi : ((yi-1)>=0?(yi-1):0);
-		Index zbegin = ( (zpos-zi*voxel_length)/voxel_length > 0.5 ) ? zi : ((zi-1)>=0?(zi-1):0);
+		Index xbegin = ( (xpos-xi*voxel_length)/voxel_length > (Scalar) 0.5 ) ? xi : ((xi-1)>=0?(xi-1):0);
+		Index ybegin = ( (ypos-yi*voxel_length)/voxel_length > (Scalar) 0.5 ) ? yi : ((yi-1)>=0?(yi-1):0);
+		Index zbegin = ( (zpos-zi*voxel_length)/voxel_length > (Scalar) 0.5 ) ? zi : ((zi-1)>=0?(zi-1):0);
 
 		Index xend = (xbegin+2) < grid_size ? (xbegin+2) : (grid_size-1);
 		Index yend = (ybegin+2) < grid_size ? (ybegin+2) : (grid_size-1);

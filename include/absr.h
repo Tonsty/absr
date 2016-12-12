@@ -32,7 +32,7 @@ namespace absr {
 
 		void abspline_fitting_sdf(Scalar lambda);
 
-		void abspline_fitting_3L(Scalar lambda);
+		void abspline_fitting_3L(Scalar lambda, Scalar epsilon);
 
 		void abspline_fitting_Juttler(Scalar lambda, Scalar kappa);
 

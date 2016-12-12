@@ -6,7 +6,7 @@
 namespace absr {
 
 	struct FastMarching {
-		void compute(const PointSet &points);
+		void compute(const PointSet &points, Scalar narrow_band_width = (Scalar) 3.5);
 		void tagging();
 		Size grid_size_; 
 		Scalar voxel_length_;
