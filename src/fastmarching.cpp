@@ -134,14 +134,15 @@ void FastMarching::tagging() {
 	const Scalar voxel_length = voxel_length_;
 
 	values_ = -values_; //invert sign
-	flag_ = std::vector<State>(grid_size*grid_size*grid_size, INACTIVE);
+	flag_.assign(grid_size*grid_size*grid_size, INACTIVE);
 
-	std::vector<RNode> initial_interface;
+	std::vector<RNode> boundary_interface;
+
 	for (Index yi = 0; yi < grid_size; yi++) {
 		for (Index xi = 0; xi < grid_size; xi++) {
 			Index gi = yi*grid_size + xi;
 			if (flag_[gi]==INACTIVE) {
-				initial_interface.push_back(RNode(gi, values_(gi)));
+				boundary_interface.push_back(RNode(gi, values_(gi)));
 				flag_[gi] = ACTIVE;
 			}
 		}
@@ -150,7 +151,7 @@ void FastMarching::tagging() {
 		for (Index xi = 0; xi < grid_size; xi++) {
 			Index gi = zi*grid_size*grid_size + xi;
 			if (flag_[gi]==INACTIVE) {
-				initial_interface.push_back(RNode(gi, values_(gi)));
+				boundary_interface.push_back(RNode(gi, values_(gi)));
 				flag_[gi] = ACTIVE;
 			}
 		}
@@ -159,7 +160,7 @@ void FastMarching::tagging() {
 		for (Index yi = 0; yi < grid_size; yi++) {
 			Index gi = zi*grid_size*grid_size + yi*grid_size;
 			if (flag_[gi]==INACTIVE) {
-				initial_interface.push_back(RNode(gi, values_(gi)));
+				boundary_interface.push_back(RNode(gi, values_(gi)));
 				flag_[gi] = ACTIVE;
 			}
 		}
@@ -169,7 +170,7 @@ void FastMarching::tagging() {
 		for (Index xi = 0; xi < grid_size; xi++) {
 			Index gi = (grid_size-1)*grid_size*grid_size + yi*grid_size+xi;
 			if (flag_[gi]==INACTIVE) {
-				initial_interface.push_back(RNode(gi, values_(gi)));
+				boundary_interface.push_back(RNode(gi, values_(gi)));
 				flag_[gi] = ACTIVE;
 			}
 		}
@@ -178,7 +179,7 @@ void FastMarching::tagging() {
 		for (Index xi = 0; xi < grid_size; xi++) {
 			Index gi = zi*grid_size*grid_size + (grid_size-1)*grid_size + xi;
 			if (flag_[gi]==INACTIVE) {
-				initial_interface.push_back(RNode(gi, values_(gi)));
+				boundary_interface.push_back(RNode(gi, values_(gi)));
 				flag_[gi] = ACTIVE;
 			}
 		}
@@ -187,14 +188,14 @@ void FastMarching::tagging() {
 		for (Index yi = 0; yi < grid_size; yi++) {
 			Index gi = zi*grid_size*grid_size + yi*grid_size + (grid_size-1);
 			if (flag_[gi]==INACTIVE) {
-				initial_interface.push_back(RNode(gi, values_(gi)));
+				boundary_interface.push_back(RNode(gi, values_(gi)));
 				flag_[gi] = ACTIVE;
 			}
 		}
 	}
 
 	std::priority_queue<RNode> pq;
-	for (Index i = 0; i < initial_interface.size(); i++) pq.push(initial_interface[i]);	
+	for (Index i = 0; i < boundary_interface.size(); i++) pq.push(boundary_interface[i]);	
 
 	while (!pq.empty()) {
 		RNode t =pq.top();
