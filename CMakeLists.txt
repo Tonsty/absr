@@ -6,7 +6,20 @@ SET(ABSR_VERSION 1.1)
 MESSAGE(STATUS "This is BINARY dir " ${PROJECT_BINARY_DIR})
 MESSAGE(STATUS "This is SOURCE dir " ${PROJECT_SOURCE_DIR})
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+LIST(APPEND CMAKE_CXX_FLAGS -std=c++11)
+
+IF(CMAKE_HOST_UNIX)
+# Set a default build type if none was specified
+IF(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  MESSAGE(STATUS "Setting build type to 'Debug' as none was specified.")
+  SET(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  SET_PROPERTY(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo")
+endif()
+
+ENDIF(CMAKE_HOST_UNIX)
 
 OPTION(WITH_QT4 "" ON)
 OPTION(WITH_VTK "" ON)
@@ -26,6 +39,7 @@ IF(WITH_VTK)
 	include(${VTK_USE_FILE})
 ENDIF(WITH_VTK)
 
+IF(CMAKE_HOST_WIN32)
 IF(WITH_MATLAB)
 SET(MATLAB_INCLUDE_DIR "D:/Program Files/MATLAB/R2013a/extern/include")
 SET(MATLAB_LIBARIES "D:/Program Files/MATLAB/R2013a/extern/lib/win64/microsoft/libmat.lib"
@@ -33,14 +47,15 @@ SET(MATLAB_LIBARIES "D:/Program Files/MATLAB/R2013a/extern/lib/win64/microsoft/l
 					"D:/Program Files/MATLAB/R2013a/extern/lib/win64/microsoft/libmex.lib"
 					"D:/Program Files/MATLAB/R2013a/extern/lib/win64/microsoft/libeng.lib")
 ENDIF(WITH_MATLAB)
+ENDIF(CMAKE_HOST_WIN32)
 
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 IF(CMAKE_HOST_WIN32)
 	SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libstatic)
-ELSEIF(CMAKE_HOST_WIN32)
+ELSEIF(CMAKE_HOST_UNIX)
 	SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-ENDIF(CMAKE_HOST_WIN32)
+ENDIF()
 
 # uninstall target
 CONFIGURE_FILE(
@@ -60,14 +75,16 @@ SET(ABSR_INCLUDES include/absr.h
 				  include/common.h
 				  include/io.h
 				  include/sdf
-				  include/tensorbsplines.h) 
+				  include/tensorbsplines.h
+				  include/fastmarching.h) 
 SET(ABSR_SOURCES src/absr.cpp 
 				 src/main.cpp
 				 src/boundingbox.cpp
 				 src/bspline.cpp
 				 src/io.cpp
 				 src/sdf.cpp
-				 src/tensorbsplines.cpp)
+				 src/tensorbsplines.cpp
+				 src/fastmarching.cpp)
 
 ADD_EXECUTABLE(absr ${ABSR_INCLUDES} ${ABSR_SOURCES})
 TARGET_LINK_LIBRARIES(absr ${VTK_LIBRARIES} ${MATLAB_LIBARIES})
