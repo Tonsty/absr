@@ -203,7 +203,7 @@ void FastMarching::tagging() {
 		Scalar distance = t.distance_;
 		pq.pop();
 
-		if(abs(distance) < voxel_length) break;
+		if(std::abs(distance) < voxel_length) break;
 
 		flag_[index] = FIXED;
 		values_(index) = -values_(index);
