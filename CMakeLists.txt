@@ -10,16 +10,15 @@ LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 LIST(APPEND CMAKE_CXX_FLAGS -std=c++11)
 
 IF(CMAKE_HOST_UNIX)
-# Set a default build type if none was specified
-IF(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  MESSAGE(STATUS "Setting build type to 'Debug' as none was specified.")
-  SET(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
-  # Set the possible values of build type for cmake-gui
-  SET_PROPERTY(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
-    "MinSizeRel" "RelWithDebInfo")
-endif()
-
-ENDIF(CMAKE_HOST_UNIX)
+	# Set a default build type if none was specified
+	IF(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+	  MESSAGE(STATUS "Setting build type to 'Debug' as none was specified.")
+	  SET(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
+	  # Set the possible values of build type for cmake-gui
+	  SET_PROPERTY(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+	    "MinSizeRel" "RelWithDebInfo")
+	ENDIF()
+ENDIF()
 
 OPTION(WITH_QT4 "" ON)
 OPTION(WITH_VTK "" ON)

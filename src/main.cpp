@@ -45,9 +45,7 @@ void vtk_save(const SDF &sdf) {
 	volume->SetScalarTypeToFloat();
 	volume->AllocateScalars();
 	float *ptr = (float *)volume->GetScalarPointer();
-	for(Index i = 0; i < mc_grid_size*mc_grid_size*mc_grid_size; i++) {
-		*(ptr++) = sdf.values_(i);
-	}
+	memcpy(ptr, sdf.values_.data(), mc_grid_size*mc_grid_size*mc_grid_size*sizeof(float));
 
 	vtkSmartPointer<vtkXMLImageDataWriter> writer =
 		vtkSmartPointer<vtkXMLImageDataWriter>::New();
@@ -77,9 +75,7 @@ void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0) {
 	volume->SetScalarTypeToFloat();
 	volume->AllocateScalars();
 	float *ptr = (float *)volume->GetScalarPointer();
-	for(Index i = 0; i < mc_grid_size*mc_grid_size*mc_grid_size; i++) {
-		*(ptr++) = sdf.values_(i);
-	}
+	memcpy(ptr, sdf.values_.data(), mc_grid_size*mc_grid_size*mc_grid_size*sizeof(float));
 
 	surface->SetInput(volume);
 	surface->ComputeNormalsOn();
