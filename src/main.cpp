@@ -34,132 +34,150 @@ using namespace absr;
 extern Size N;
 int save = 0;
 
-TransformMat gtransmat;
-
-void vtk_save(const SDF &sdf) 
-{
-	vtkSmartPointer<vtkImageData> volume =
-		vtkSmartPointer<vtkImageData>::New();
-
-	Size mc_grid_size = sdf.grid_size_;
-	Scalar mc_voxel_length = sdf.voxel_length_;
-	volume->SetDimensions(mc_grid_size, mc_grid_size, mc_grid_size);
-	volume->SetSpacing(mc_voxel_length, mc_voxel_length, mc_voxel_length);
-	volume->SetOrigin(0, 0, 0);
-	volume->SetNumberOfScalarComponents(1);
-	volume->SetScalarTypeToFloat();
-	volume->AllocateScalars();
-	float *ptr = (float *)volume->GetScalarPointer();
-	memcpy(ptr, sdf.values_.data(), mc_grid_size*mc_grid_size*mc_grid_size*sizeof(float));
-
-	vtkSmartPointer<vtkXMLImageDataWriter> writer =
-		vtkSmartPointer<vtkXMLImageDataWriter>::New();
-	writer->SetFileName("volume.vti");
-
+void savevolume(const vtkSmartPointer<vtkImageData> &volume, const char* filename) {
+	vtkSmartPointer<vtkXMLImageDataWriter> writer =vtkSmartPointer<vtkXMLImageDataWriter>::New();
+	writer->SetFileName(filename);
 	writer->SetInputConnection(volume->GetProducerPort());
 	writer->Write();	
 }
 
-void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0, const TransformMat &transmat = TransformMat::Identity(4, 4)) 
-{
-	std::cerr << "begin marchingcubes:" << std::endl;
-
-	vtkSmartPointer<vtkImageData> volume =
-		vtkSmartPointer<vtkImageData>::New();
-	double isoValue = isovalue;
-
-	vtkSmartPointer<vtkMarchingCubes> surface = 
-		vtkSmartPointer<vtkMarchingCubes>::New();
-
-	Size mc_grid_size = sdf.grid_size_;
-	Scalar mc_voxel_length = sdf.voxel_length_;
-	volume->SetDimensions(mc_grid_size, mc_grid_size, mc_grid_size);
-	volume->SetSpacing(mc_voxel_length, mc_voxel_length, mc_voxel_length);
+void sdftovolume(const SDF &sdf, vtkSmartPointer<vtkImageData> &volume) {
+	Size grid_size = sdf.grid_size_;
+	Scalar voxel_length = sdf.voxel_length_;
+	volume->SetDimensions(grid_size, grid_size, grid_size);
+	volume->SetSpacing(voxel_length, voxel_length, voxel_length);
 	volume->SetOrigin(0, 0, 0);
 	volume->SetNumberOfScalarComponents(1);
 	volume->SetScalarTypeToFloat();
 	volume->AllocateScalars();
 	float *ptr = (float *)volume->GetScalarPointer();
-	memcpy(ptr, sdf.values_.data(), mc_grid_size*mc_grid_size*mc_grid_size*sizeof(float));
+	memcpy(ptr, sdf.values_.data(), grid_size*grid_size*grid_size*sizeof(float));
+}
 
-	surface->SetInput(volume);
-	surface->ComputeNormalsOn();
-	surface->SetValue(0, isoValue);
+vtkAlgorithmOutput* volumetosurface(vtkSmartPointer<vtkMarchingCubes> &mc, 
+	vtkSmartPointer<vtkImageData> &volume, Scalar isovalue = 0.0) {
+	mc->SetInput(volume);
+	mc->ComputeNormalsOn();
+	mc->SetValue(0, (double) isovalue);
+	return mc->GetOutputPort();
+}
 
-	vtkSmartPointer<vtkTransform> transform = 
-		vtkSmartPointer<vtkTransform>::New();
-	Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> transmatd = transmat.cast<double>();
+vtkAlgorithmOutput* transformsurface(vtkSmartPointer<vtkTransformPolyDataFilter> &tfilter, vtkAlgorithmOutput*surface, 
+	const TransformMat &transmat = TransformMat::Identity(4, 4)) {
+	vtkSmartPointer<vtkTransform> transform = vtkSmartPointer<vtkTransform>::New();
+	Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> transmatd = transmat.transpose().cast<double>();
 	transform->SetMatrix(transmatd.data());
+	tfilter->SetTransform(transform);
+	tfilter->SetInputConnection(surface);
+	return tfilter->GetOutputPort();
+}
 
-	vtkSmartPointer<vtkTransformPolyDataFilter> tsurface = 
-		vtkSmartPointer<vtkTransformPolyDataFilter>::New();
-	tsurface->SetTransform(transform);
-	tsurface->SetInputConnection(surface->GetOutputPort());
+vtkAlgorithmOutput* reversesurface(vtkSmartPointer<vtkReverseSense> &reverse, vtkAlgorithmOutput*surface, 
+	bool rcells = true, bool rnormals = true) {
+	reverse->SetInputConnection(surface);
+	reverse->ReverseCellsOff();
+	reverse->ReverseNormalsOff();
+	if(rcells) reverse->ReverseCellsOn();
+	if(rnormals) reverse->ReverseNormalsOn();
+	return reverse->GetOutputPort();
+}
 
-	vtkSmartPointer<vtkRenderer> renderer = 
-		vtkSmartPointer<vtkRenderer>::New();
-	renderer->SetBackground(.1, .2, .3);
-
+void drawsurface(vtkSmartPointer<vtkRenderer> &renderer, vtkAlgorithmOutput*surface) {
 	vtkSmartPointer<vtkPolyDataMapper> mapper = 
 		vtkSmartPointer<vtkPolyDataMapper>::New();
-	mapper->SetInputConnection(tsurface->GetOutputPort());
+	mapper->SetInputConnection(surface);
 	mapper->ScalarVisibilityOff();
 	vtkSmartPointer<vtkActor> actor = 
 		vtkSmartPointer<vtkActor>::New();
 	actor->SetMapper(mapper);
 	renderer->AddActor(actor);
+}
 
-	//Unit Cube Wireframe
-	{
-		vtkSmartPointer<vtkCubeSource> cubeSource = 
-			vtkSmartPointer<vtkCubeSource>::New();
-		cubeSource->SetBounds(0, 1, 0, 1, 0, 1);
-		vtkSmartPointer<vtkPolyDataMapper> mapper = 
-			vtkSmartPointer<vtkPolyDataMapper>::New();
-		mapper->SetInputConnection(cubeSource->GetOutputPort());
-		vtkSmartPointer<vtkActor> actor = 
-			vtkSmartPointer<vtkActor>::New();
-		actor->GetProperty()->SetRepresentationToWireframe();
-		actor->SetMapper(mapper);
-		actor->GetProperty()->LightingOff();
-		renderer->AddActor(actor);
+//Unit Cube Wireframe
+void drawcube(vtkSmartPointer<vtkRenderer> &renderer, const TransformMat &transmat = TransformMat::Identity(4, 4)) {
+	vtkSmartPointer<vtkCubeSource> cubeSource = 
+		vtkSmartPointer<vtkCubeSource>::New();
+	cubeSource->SetBounds(0, 1, 0, 1, 0, 1);
+
+	vtkAlgorithmOutput* cube = cubeSource->GetOutputPort();
+
+	vtkSmartPointer<vtkTransformPolyDataFilter> tfilter = 
+		vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+	cube = transformsurface(tfilter, cube, transmat);
+
+	vtkSmartPointer<vtkPolyDataMapper> mapper = 
+		vtkSmartPointer<vtkPolyDataMapper>::New();
+	mapper->SetInputConnection(cube);
+	vtkSmartPointer<vtkActor> actor = 
+		vtkSmartPointer<vtkActor>::New();
+	actor->GetProperty()->SetRepresentationToWireframe();
+	actor->SetMapper(mapper);
+	actor->GetProperty()->LightingOff();
+	renderer->AddActor(actor);
+}
+
+void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0, 
+	const TransformMat &transmat = TransformMat::Identity(4, 4), const bool &swapxz = false) {
+
+	vtkSmartPointer<vtkImageData> volume = vtkSmartPointer<vtkImageData>::New();
+	std::cerr << "begin copying sdf to volume:" << std::endl;
+	sdftovolume(sdf, volume);
+	std::cerr << "finished copying sdf to volume:" << std::endl;
+	if(save) {
+		std::cerr << "begin saving volume_fitting.vti:" << std::endl;
+		savevolume(volume, "volume_fitting.vti");
+		std::cerr << "finished saving volume_fitting.vti:" << std::endl;
 	}
+
+	vtkAlgorithmOutput* surface;
+
+	vtkSmartPointer<vtkMarchingCubes> mc = 
+		vtkSmartPointer<vtkMarchingCubes>::New();
+	surface= volumetosurface(mc, volume);
+
+	TransformMat swapxzmat = TransformMat::Identity(4, 4);
+	if (swapxz) swapxzmat << 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1;
+	vtkSmartPointer<vtkTransformPolyDataFilter> tfilter = 
+		vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+	surface = transformsurface(tfilter, surface, transmat*swapxzmat);
+	vtkSmartPointer<vtkReverseSense> reverse = 
+		vtkSmartPointer<vtkReverseSense>::New();
+	if (swapxz) surface = reversesurface(reverse, surface, true, false);
+
+	vtkSmartPointer<vtkRenderer> renderer = 
+		vtkSmartPointer<vtkRenderer>::New();
+	renderer->SetBackground(.1, .2, .3);
+
+	drawsurface(renderer, surface);
+	drawcube(renderer, transmat);
 
 	vtkSmartPointer<vtkRenderWindow> renderWindow = 
 		vtkSmartPointer<vtkRenderWindow>::New();
 	renderWindow->AddRenderer(renderer);
-	vtkSmartPointer<vtkRenderWindowInteractor> interactor = 
-		vtkSmartPointer<vtkRenderWindowInteractor>::New();
-	interactor->SetRenderWindow(renderWindow);
 
-	vtkSmartPointer<vtkInteractorStyleTrackballCamera> style = 
-		vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New(); //like paraview
-
-	interactor->SetInteractorStyle(style);
-
+	std::cerr << "begin marchingcubes:" << std::endl;
+	renderWindow->Render();
 	std::cerr << "finished marchingcubes" << std::endl;
 
 	if (save) {
-		vtkSmartPointer<vtkReverseSense> reverse = 
-			vtkSmartPointer<vtkReverseSense>::New();
-		reverse->SetInputConnection(tsurface->GetOutputPort());
-		reverse->ReverseCellsOn();
-		//reverse->ReverseNormalsOn();
-
+		std::cerr << "begin saving mesh.ply:" << std::endl;
 		vtkSmartPointer<vtkPLYWriter> plyWriter =
 			vtkSmartPointer<vtkPLYWriter>::New();
 		plyWriter->SetFileName("mesh.ply");
-		plyWriter->SetInputConnection(reverse->GetOutputPort());
+		vtkSmartPointer<vtkReverseSense> reverse = 
+			vtkSmartPointer<vtkReverseSense>::New();
+		surface = reversesurface(reverse, surface, true, false);
+		plyWriter->SetInputConnection(surface);
 		plyWriter->Write();
-
-		vtkSmartPointer<vtkXMLImageDataWriter> writer =
-			vtkSmartPointer<vtkXMLImageDataWriter>::New();
-		writer->SetFileName("volume_fitting.vti");
-
-		writer->SetInputConnection(volume->GetProducerPort());
-		writer->Write();	
+		std::cerr << "finished saving mesh.ply:" << std::endl;
 	}
 
+	vtkSmartPointer<vtkRenderWindowInteractor> interactor = 
+		vtkSmartPointer<vtkRenderWindowInteractor>::New();
+	interactor->SetRenderWindow(renderWindow);
+	vtkSmartPointer<vtkInteractorStyleTrackballCamera> style = 
+		vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New(); //like paraview
+	interactor->SetInteractorStyle(style);
 	renderWindow->Render();
 	interactor->Start();
 }
@@ -184,7 +202,11 @@ void test_sdf_fitting(const PointSet &points, const NormalSet &normals,
 	fm.compute(points, narrow_band_width);
 	fm.tagging();
 	sdf.values_.swap(fm.values_);
-	if(save) vtk_save(sdf);
+	if(save) {
+		vtkSmartPointer<vtkImageData> volume = vtkSmartPointer<vtkImageData>::New();
+		sdftovolume(sdf, volume);
+		savevolume(volume, "volume.vti");
+	}
 
 	ABSRFittingSDF fitter(sdf);
 	fitter.set_parameters(lambda);
@@ -270,8 +292,8 @@ int main(int argc, char** argv) {
 	mc_sdf.topoints(mc_points);
 	tbs.evaluate(mc_points, mc_sdf.values_);
 
-	if(method == 2) vtk_mc_display(mc_sdf, -0.5/sdf_grid_size);
-	else vtk_mc_display(mc_sdf);
+	if(method == 0) vtk_mc_display(mc_sdf, -0.5/sdf_grid_size, transmat.inverse(), true);
+	else vtk_mc_display(mc_sdf, 0.0, transmat.inverse(), false);
 
 	return 0;
 }

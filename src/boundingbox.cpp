@@ -26,7 +26,7 @@ TransformMat BoundingBox::normalize_to_unit_cube(PointSet &points) {
 	points *= scale;
 	points.rowwise() += shift.transpose();
 
-	TransformMat tf_mat(4, 4);
+	TransformMat tf_mat = TransformMat::Identity(4, 4);
 	tf_mat.diagonal() << scale, scale, scale, 1;
 	tf_mat.block(0, 3, 3, 1) = shift;
 
