@@ -5,6 +5,8 @@
 #include <vtkSphereSource.h>
 #include <vtkImageData.h>
 #include <vtkDICOMImageReader.h>
+#include <vtkTransformPolyDataFilter.h>
+#include <vtkTransform.h>
 
 #include <vtkActor.h>
 #include <vtkPolyDataMapper.h>
@@ -32,7 +34,10 @@ using namespace absr;
 extern Size N;
 int save = 0;
 
-void vtk_save(const SDF &sdf) {
+TransformMat gtransmat;
+
+void vtk_save(const SDF &sdf) 
+{
 	vtkSmartPointer<vtkImageData> volume =
 		vtkSmartPointer<vtkImageData>::New();
 
@@ -55,8 +60,8 @@ void vtk_save(const SDF &sdf) {
 	writer->Write();	
 }
 
-void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0) {
-
+void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0, const TransformMat &transmat = TransformMat::Identity(4, 4)) 
+{
 	std::cerr << "begin marchingcubes:" << std::endl;
 
 	vtkSmartPointer<vtkImageData> volume =
@@ -81,13 +86,23 @@ void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0) {
 	surface->ComputeNormalsOn();
 	surface->SetValue(0, isoValue);
 
+	vtkSmartPointer<vtkTransform> transform = 
+		vtkSmartPointer<vtkTransform>::New();
+	Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> transmatd = transmat.cast<double>();
+	transform->SetMatrix(transmatd.data());
+
+	vtkSmartPointer<vtkTransformPolyDataFilter> tsurface = 
+		vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+	tsurface->SetTransform(transform);
+	tsurface->SetInputConnection(surface->GetOutputPort());
+
 	vtkSmartPointer<vtkRenderer> renderer = 
 		vtkSmartPointer<vtkRenderer>::New();
 	renderer->SetBackground(.1, .2, .3);
 
 	vtkSmartPointer<vtkPolyDataMapper> mapper = 
 		vtkSmartPointer<vtkPolyDataMapper>::New();
-	mapper->SetInputConnection(surface->GetOutputPort());
+	mapper->SetInputConnection(tsurface->GetOutputPort());
 	mapper->ScalarVisibilityOff();
 	vtkSmartPointer<vtkActor> actor = 
 		vtkSmartPointer<vtkActor>::New();
@@ -120,14 +135,14 @@ void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0) {
 	vtkSmartPointer<vtkInteractorStyleTrackballCamera> style = 
 		vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New(); //like paraview
 
-	interactor->SetInteractorStyle( style );
+	interactor->SetInteractorStyle(style);
 
 	std::cerr << "finished marchingcubes" << std::endl;
 
 	if (save) {
 		vtkSmartPointer<vtkReverseSense> reverse = 
 			vtkSmartPointer<vtkReverseSense>::New();
-		reverse->SetInputConnection(surface->GetOutputPort());
+		reverse->SetInputConnection(tsurface->GetOutputPort());
 		reverse->ReverseCellsOn();
 		//reverse->ReverseNormalsOn();
 
@@ -147,115 +162,47 @@ void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0) {
 
 	renderWindow->Render();
 	interactor->Start();
-
-	float delta = 0.002;
-	while(1) {
-		if(isoValue < -0.025 || isoValue > 0.025) delta = -delta;
-		isoValue += delta;
-		surface->SetValue(0, isoValue);
-		surface->Update();
-		renderWindow->Render();
-	}
 }
 
-void test_sdf_fitting(SDF &mc_sdf, 
-	const std::string points_file, const std::string normals_file, 
-	Scalar lambda, Scalar narrow_band_width, Size sdf_grid_size) {
-	
+TransformMat prepare_points_normals(PointSet &points, NormalSet &normals,
+	const std::string points_file, const std::string normals_file) 
+{
+	IO::load_points_normals(points_file, normals_file, points, normals);
+	return BoundingBox::normalize_to_unit_cube(points);
+}
+
+
+void test_sdf_fitting(const PointSet &points, const NormalSet &normals, 
+	Scalar lambda, Scalar narrow_band_width, Size sdf_grid_size, TensorBSplines &tbs) 
+{	
 	SDF sdf;
 	sdf.grid_size_ = sdf_grid_size;
 	sdf.voxel_length_ = 1.0/(sdf.grid_size_-1);
-	
-	//PointSet points;
-	//sdf.topoints(points);
-	//Size npts = points.rows();
-	//sdf.values_.resize(npts);
-
-	////Sphere
-	//Point center(3);
-	//center << 0.5, 0.5, 0.5;
-	//for (Index index = 0; index < npts; index++) {
-	//	Vector pc = points.row(index) - center.transpose();
-	//	sdf.values_(index) = pc.norm() - 0.3;
-	//}
-
-	////Cone
-	//Vector v(2);
-	//v << 0.5, 0.5;
-	//for (Index index = 0; index < npts; index++) {
-	//	Point pt = points.row(index);
-	//	sdf.values_(index) = (pt.topRows(2)-v).norm() - abs(pt(2)-0.5);
-	//}
-
-	{
-		PointSet points;
-		NormalSet normals;
-		//IO::load_points_normals("data/duck.points", "data/duck.normals", points, normals);
-		//IO::load_points_normals("data/bun.points", "data/bun.normals", points, normals);
-		//IO::load_points_normals("data/mannequin.points", "data/mannequin.normals", points, normals);
-		//IO::load_points_normals("data/bunny_with_holes.xyz", "", points, normals);
-		//IO::load_points_normals("data/bunny.xyz", "", points, normals);
-		//IO::load_points_normals("data/dragon.xyz", "", points, normals);
-		//IO::load_points_normals("data/armadillo.xyz", "", points, normals);
-		//IO::load_points_normals("data/blade.xyz", "", points, normals);
-		//IO::load_points_normals("data/horse.xyz", "", points, normals);
-		IO::load_points_normals(points_file, normals_file, points, normals);
-
-		BoundingBox bbox(points);
-		BoundingBox::normalize_to_unit_cube(points);
-
-		FastMarching fm;
-		fm.grid_size_ = sdf.grid_size_;
-		fm.voxel_length_ = sdf.voxel_length_;
-		fm.compute(points, narrow_band_width);
-		fm.tagging();
-
-		sdf.values_.swap(fm.values_);
-	}
-
+	FastMarching fm;
+	fm.grid_size_ = sdf.grid_size_;
+	fm.voxel_length_ = sdf.voxel_length_;
+	fm.compute(points, narrow_band_width);
+	fm.tagging();
+	sdf.values_.swap(fm.values_);
 	if(save) vtk_save(sdf);
-	//exit(0);
 
-	//vtk_mc_display(sdf);
-	//exit(0);
-
-	ABSR absr_sdf(sdf);
-	absr_sdf.abspline_fitting_sdf(lambda);
-
-	absr_sdf.resample_sdf(mc_sdf);
+	ABSRFittingSDF fitter(sdf);
+	fitter.set_parameters(lambda);
+	fitter.fitting(tbs);
 }
 
-void test_3L_fitting(SDF &mc_sdf, const std::string points_file, const std::string normals_file, Scalar lambda, Scalar epsilon) {
-	PointSet points;
-	NormalSet normals;
-	//IO::load_points_normals("duck.points", "duck.normals", points, normals);
-	//IO::load_points_normals("bunny.points", "bunny.normals", points, normals);
-	//IO::load_points_normals("mannequin.points", "mannequin.normals", points, normals);
-	IO::load_points_normals(points_file, normals_file, points, normals);
-
-	BoundingBox bbox(points);
-	BoundingBox::normalize_to_unit_cube(points);
-
-	ABSR absr_3L(points, normals);
-	absr_3L.abspline_fitting_3L(lambda, epsilon);
-
-	absr_3L.resample_sdf(mc_sdf);
+void test_3L_fitting(const PointSet &points, const NormalSet &normals, 
+	Scalar lambda, Scalar epsilon, TensorBSplines &tbs) {
+	ABSRFitting3L fitter(points, normals);
+	fitter.set_parameters(lambda, epsilon);
+	fitter.fitting(tbs);
 }
 
-void test_Juttler_fitting(SDF &mc_sdf, const std::string points_file, const std::string normals_file, Scalar lambda, Scalar kappa) {
-	PointSet points;
-	NormalSet normals;
-	//IO::load_points_normals("duck.points", "duck.normals", points, normals);
-	//IO::load_points_normals("bunny.points", "bunny.normals", points, normals);
-	//IO::load_points_normals("mannequin.points", "mannequin.normals", points, normals);
-	IO::load_points_normals(points_file, normals_file, points, normals);
-	BoundingBox bbox(points);
-	BoundingBox::normalize_to_unit_cube(points);
-
-	ABSR absr_Juttler(points, normals);
-	absr_Juttler.abspline_fitting_Juttler(lambda, kappa);
-
-	absr_Juttler.resample_sdf(mc_sdf);
+void test_Juttler_fitting(const PointSet &points, const NormalSet &normals, 
+	Scalar lambda, Scalar kappa, TensorBSplines &tbs) {
+	ABSRFittingJuttler fitter(points, normals);
+	fitter.set_parameters(lambda, kappa);
+	fitter.fitting(tbs);
 }
 
 int main(int argc, char** argv) {
@@ -300,21 +247,28 @@ int main(int argc, char** argv) {
 	std::cerr << "save = " << save << std::endl;
 	if(method == 0) std::cerr << "sdf_grid_size = " << sdf_grid_size << std::endl;
 
-
 	std::string yes_no;
 	std::cerr << "yes/no: " << std::endl;
 	cin >> yes_no;
 	if((yes_no != "y") && (yes_no != "Y") && (yes_no != "yes") && (yes_no != "Yes")) exit(0);
 
+	PointSet points;
+	NormalSet normals;
+	TransformMat transmat = prepare_points_normals(points, normals, points_file, normals_file);
+
+	TensorBSplines tbs;
+	switch(method) {
+	case 0 : {test_sdf_fitting(points, normals, lambda, narrow_band_width, sdf_grid_size, tbs); break;}
+	case 1 : {test_3L_fitting(points, normals, lambda, epsilon, tbs); break;}
+	case 2 : {test_Juttler_fitting(points, normals, lambda, kappa, tbs); break;}
+	}
+
 	SDF mc_sdf;
 	mc_sdf.grid_size_ = mc_grid_size;
 	mc_sdf.voxel_length_ = 1.0/(mc_sdf.grid_size_-1);
-
-	switch(method) {
-	case 0 : {test_sdf_fitting(mc_sdf, points_file, normals_file, lambda, narrow_band_width, sdf_grid_size); break;}
-	case 1 : {test_3L_fitting(mc_sdf, points_file, normals_file, lambda, epsilon); break;}
-	case 2 : {test_Juttler_fitting(mc_sdf, points_file, normals_file, lambda, kappa); break;}
-	}
+	PointSet mc_points;
+	mc_sdf.topoints(mc_points);
+	tbs.evaluate(mc_points, mc_sdf.values_);
 
 	if(method == 2) vtk_mc_display(mc_sdf, -0.5/sdf_grid_size);
 	else vtk_mc_display(mc_sdf);

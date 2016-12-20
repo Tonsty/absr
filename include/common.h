@@ -23,8 +23,11 @@ namespace absr {
 	typedef Eigen::Array<Index, Eigen::Dynamic, Eigen::Dynamic> Arrayi;
 
 	typedef PointSet Vertices;
-
 	typedef Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic> Faces;
+	struct Mesh {
+		PointSet verts_;
+		Faces faces_;
+	};
 
 	typedef Eigen::SparseMatrix<Scalar> SparseMatrix;
 	typedef Eigen::Triplet<Scalar> Triplet;

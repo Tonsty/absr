@@ -7,12 +7,22 @@
 namespace absr {
 	struct TensorBSplines {
 		TensorBSplines() {};
-		void fitting_sdf(const SDF &sdf, Scalar lambda = 0.1);
-		void fitting_3L(const PointSet &points, const NormalSet &normals, Scalar lambda = 0.07, Scalar epsilon = 0.01);
-		void fitting_Juttler(const PointSet &points, const NormalSet &normals, Scalar lambda = 0.08, Scalar kappa = 0.05);
 		void evaluate(const PointSet &points, Vector &values);
 		Vector controls_;
+
+		static void make_smooth_1d_mat(SparseMatrix &smooth_1d_mat);
+		static void make_data_1d_mat(const Vector &points_1d, SparseMatrix &data_1d_mat);
+		static void make_smooth_mat(SparseMatrix &smooth_mat);
+		static void make_data_mat(const PointSet &points, SparseMatrix &data_mat);
+		static void make_data_duvw_mat(const PointSet &points, 
+			SparseMatrix &data_mat, 
+			SparseMatrix &du_mat, 
+			SparseMatrix &dv_mat, 
+			SparseMatrix &dw_mat);
+
 	};
 };
+
+
 
 #endif

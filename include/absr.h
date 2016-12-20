@@ -7,44 +7,55 @@
 
 namespace absr {
 
-	struct Mesh {
-		PointSet verts_;
-		Faces faces_;
+	class ABSRFitting {
+	public:
+		virtual void fitting(TensorBSplines &tbs)=0;
 	};
 
-
-
-	class ABSR {
-
+	class ABSRFitting3L: public ABSRFitting {
 	public:
-
-		ABSR() {};
-
-		ABSR(const SDF &sdf) : sdf_(sdf) {}
-
-		ABSR(const PointSet &points, const NormalSet &normals) : points_(points), normals_(normals) {};
-
-		void compute_boundingbox();
-
-		void compute_normals();
-
-		void build_sdf();
-
-		void abspline_fitting_sdf(Scalar lambda);
-
-		void abspline_fitting_3L(Scalar lambda, Scalar epsilon);
-
-		void abspline_fitting_Juttler(Scalar lambda, Scalar kappa);
-
-		void resample_sdf(SDF &sdf);
-
+		ABSRFitting3L(const PointSet &points, const NormalSet normals) : 
+		  points_(points), normals_(normals), lambda_(0.07), epsilon_(0.01) {}
+		void set_parameters(Scalar lambda, Scalar epsilon) {
+			lambda_ = lambda;
+			epsilon_ = epsilon;
+		}
+		virtual void fitting(TensorBSplines &tbs);
 	protected:
-
-		TensorBSplines tensorbs_;
-
 		PointSet points_;
 		NormalSet normals_;
+		Scalar lambda_;
+		Scalar epsilon_;
+	};
+
+	class ABSRFittingJuttler: public ABSRFitting {
+	public:
+		ABSRFittingJuttler(const PointSet &points, const NormalSet normals) : 
+		  points_(points), normals_(normals), lambda_(0.08), kappa_(0.05) {}
+		void set_parameters(Scalar lambda, Scalar kappa) {
+			lambda_ = lambda;
+			kappa_ = kappa;
+		}
+		virtual void fitting(TensorBSplines &tbs);
+	protected:
+		PointSet points_;
+		NormalSet normals_;
+		Scalar lambda_;
+		Scalar kappa_;
+	};
+
+	class ABSRFittingSDF: public ABSRFitting {
+	public:
+		ABSRFittingSDF(const SDF &sdf) : sdf_(sdf), lambda_(0.1), global_fitting_(false) {}
+		void set_parameters(Scalar lambda, bool global_fitting = false) {
+			lambda_ = lambda;
+			global_fitting_ = global_fitting;
+		}
+		virtual void fitting(TensorBSplines &tbs);
+	protected:
 		SDF sdf_;
+		Scalar lambda_;
+		bool global_fitting_;
 	};
 }
 

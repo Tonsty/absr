@@ -75,6 +75,8 @@ SET(ABSR_INCLUDES include/absr.h
 				  include/io.h
 				  include/sdf
 				  include/tensorbsplines.h
+				  include/activetbs.h
+				  include/hierarchicaltbs.h
 				  include/fastmarching.h) 
 SET(ABSR_SOURCES src/absr.cpp 
 				 src/main.cpp
@@ -83,6 +85,8 @@ SET(ABSR_SOURCES src/absr.cpp
 				 src/io.cpp
 				 src/sdf.cpp
 				 src/tensorbsplines.cpp
+				 src/activetbs.cpp
+				 src/hierarchicaltbs.cpp
 				 src/fastmarching.cpp)
 
 ADD_EXECUTABLE(absr ${ABSR_INCLUDES} ${ABSR_SOURCES})
