@@ -12,18 +12,20 @@ extern "C" TRIANGLES gtriangles;
 using namespace absr;
 
 TensorBSplines gtbs;
+Scalar gisovalue = 0.0;
 
 double tbsfunc(double x, double y, double z) {
 	if(x<0 || y<0 || z<0 || x>1 || y>1 || z>1) return 1.0;
-	return gtbs(x, y, z);
+	return gtbs(x, y, z) - gisovalue;
 }
 
-void Polygonizer::compute(absr::TensorBSplines &tbs, absr::Size grid_size, 
+void Polygonizer::compute(absr::TensorBSplines &tbs, absr::Size grid_size, Scalar isovalue,
 	absr::TransformMat transmat, bool invertface) {
 	int i;
 	char *err;
 	gtbs.N_ = tbs.N_;
 	gtbs.controls_.swap(tbs.controls_);
+	gisovalue = isovalue;
 	fprintf(stdout, "ply\n");
 	fprintf(stdout, "format ascii 1.0\n");
 	fprintf(stdout, "comment polygonizer generated\n");

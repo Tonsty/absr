@@ -34,7 +34,7 @@
 using namespace absr;
 
 int gsave = 0;
-int use_vtk_mc = false;
+int guse_vtk_mc = false;
 
 void savevolume(const vtkSmartPointer<vtkImageData> &volume, const char* filename) {
 	vtkSmartPointer<vtkXMLImageDataWriter> writer =vtkSmartPointer<vtkXMLImageDataWriter>::New();
@@ -285,7 +285,7 @@ int main(int argc, char** argv) {
 	case 2 : {test_Juttler_fitting(points, normals, lambda, kappa, tbs); break;}
 	}
 
-	if (use_vtk_mc) {
+	if (guse_vtk_mc) {
 		SDF mc_sdf;
 		mc_sdf.grid_size_ = mc_grid_size;
 		mc_sdf.voxel_length_ = 1.0/(mc_sdf.grid_size_-1);
@@ -296,15 +296,15 @@ int main(int argc, char** argv) {
 		if(method == 0) {
 			TransformMat swapxzmat = TransformMat::Identity(4, 4);
 			swapxzmat << 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1;
-			vtk_mc_display(mc_sdf, -0.5/sdf_grid_size, transmat.inverse() * swapxzmat, true);
+			vtk_mc_display(mc_sdf, 0.0, transmat.inverse() * swapxzmat, true);
 		} else vtk_mc_display(mc_sdf, 0.0, transmat.inverse(), false);
 	} else {
 		Polygonizer polyonizer;
 		if(method == 0) {
 			TransformMat swapxzmat = TransformMat::Identity(4, 4);
 			swapxzmat << 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1;
-			polyonizer.compute(tbs, mc_grid_size, transmat.inverse() * swapxzmat, false);
-		} else polyonizer.compute(tbs, mc_grid_size, transmat.inverse(), true);
+			polyonizer.compute(tbs, mc_grid_size, 0.0, transmat.inverse() * swapxzmat, false);
+		} else polyonizer.compute(tbs, mc_grid_size, 0.0, transmat.inverse(), true);
 	}
 
 	return 0;
