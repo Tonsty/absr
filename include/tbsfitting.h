@@ -7,14 +7,14 @@
 
 namespace absr {
 
-	class ABSRFitting {
+	class TBSFitting {
 	public:
 		virtual void fitting(TensorBSplines &tbs)=0;
 	};
 
-	class ABSRFitting3L: public ABSRFitting {
+	class TBSFitting3L: public TBSFitting {
 	public:
-		ABSRFitting3L(const PointSet &points, const NormalSet normals) : 
+		TBSFitting3L(const PointSet &points, const NormalSet normals) : 
 		  points_(points), normals_(normals), lambda_(0.07), epsilon_(0.01) {}
 		void set_parameters(Scalar lambda, Scalar epsilon) {
 			lambda_ = lambda;
@@ -28,9 +28,9 @@ namespace absr {
 		Scalar epsilon_;
 	};
 
-	class ABSRFittingJuttler: public ABSRFitting {
+	class TBSFittingJuttler: public TBSFitting {
 	public:
-		ABSRFittingJuttler(const PointSet &points, const NormalSet normals) : 
+		TBSFittingJuttler(const PointSet &points, const NormalSet normals) : 
 		  points_(points), normals_(normals), lambda_(0.08), kappa_(0.05) {}
 		void set_parameters(Scalar lambda, Scalar kappa) {
 			lambda_ = lambda;
@@ -44,9 +44,9 @@ namespace absr {
 		Scalar kappa_;
 	};
 
-	class ABSRFittingSDF: public ABSRFitting {
+	class TBSFittingSDF: public TBSFitting {
 	public:
-		ABSRFittingSDF(const SDF &sdf) : sdf_(sdf), lambda_(0.1), global_fitting_(false) {}
+		TBSFittingSDF(const SDF &sdf) : sdf_(sdf), lambda_(0.1), global_fitting_(false) {}
 		void set_parameters(Scalar lambda, bool global_fitting = false) {
 			lambda_ = lambda;
 			global_fitting_ = global_fitting;

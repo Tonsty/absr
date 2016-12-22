@@ -1,15 +1,14 @@
-#include <absr.h>
+#include <tbsfitting.h>
 #include <iostream>
 
 using namespace absr;
 
-extern Size N;
-
-void ABSRFitting3L::fitting(TensorBSplines &tbs) {
+void TBSFitting3L::fitting(TensorBSplines &tbs) {
 	PointSet &points = points_;
 	NormalSet &normals = normals_;
-	const Scalar &lambda = lambda_;
-	const Scalar &epsilon = epsilon_;
+	const Scalar lambda = lambda_;
+	const Scalar epsilon = epsilon_;
+	const Size N = tbs.N_;
 
 	Size npts = (Size) points.rows();
 	PointSet points_3L(npts*3, 3);
@@ -18,10 +17,10 @@ void ABSRFitting3L::fitting(TensorBSplines &tbs) {
 	values_3L << Vector::Zero(npts), Vector::Ones(npts), -Vector::Ones(npts);
 
 	SparseMatrix data_mat;
-	TensorBSplines::make_data_mat(points_3L, data_mat);
+	TensorBSplines::make_data_mat(points_3L, data_mat, N);
 
 	SparseMatrix smooth_mat; 
-	TensorBSplines::make_smooth_mat(smooth_mat);
+	TensorBSplines::make_smooth_mat(smooth_mat, N);
 
 	SparseMatrix left_mat = data_mat.transpose() * data_mat + smooth_mat * lambda * npts * 3;
 	Vector right_vec = data_mat.transpose() * values_3L;
@@ -36,18 +35,19 @@ void ABSRFitting3L::fitting(TensorBSplines &tbs) {
 	std::cerr << "finished solving 3L" << std::endl;
 }
 
-void ABSRFittingJuttler::fitting(TensorBSplines &tbs) {
+void TBSFittingJuttler::fitting(TensorBSplines &tbs) {
 	PointSet &points = points_;
 	NormalSet &normals = normals_;
-	const Scalar &lambda = lambda_;
-	const Scalar &kappa = kappa_;
+	const Scalar lambda = lambda_;
+	const Scalar kappa = kappa_;
+	const Size N = tbs.N_;
 
 	SparseMatrix data_mat, du_mat, dv_mat, dw_mat;
-	TensorBSplines::make_data_duvw_mat(points, data_mat, du_mat, dv_mat, dw_mat);
+	TensorBSplines::make_data_duvw_mat(points, data_mat, du_mat, dv_mat, dw_mat, N);
 
 	Size npts = (Size) points.rows();
 	SparseMatrix smooth_mat; 
-	TensorBSplines::make_smooth_mat(smooth_mat);
+	TensorBSplines::make_smooth_mat(smooth_mat, N);
 
 	SparseMatrix left_mat = data_mat.transpose() * data_mat + 
 		(du_mat.transpose() * du_mat + 
@@ -68,10 +68,11 @@ void ABSRFittingJuttler::fitting(TensorBSplines &tbs) {
 	std::cerr << "finished solving Juttler" << std::endl;
 }
 
-void ABSRFittingSDF::fitting(TensorBSplines &tbs) {
+void TBSFittingSDF::fitting(TensorBSplines &tbs) {
 	const SDF &sdf = sdf_;
-	const Scalar &lambda = lambda_;
-	const bool &global_fitting = global_fitting_;
+	const Scalar lambda = lambda_;
+	const bool global_fitting = global_fitting_;
+	const Size N = tbs.N_;
 
 	const Vector &values = sdf.values_;
 	const Size grid_size = sdf.grid_size_;
@@ -82,10 +83,10 @@ void ABSRFittingSDF::fitting(TensorBSplines &tbs) {
 		sdf.topoints(points);
 
 		SparseMatrix data_mat;
-		TensorBSplines::make_data_mat(points, data_mat);
+		TensorBSplines::make_data_mat(points, data_mat, N);
 
 		SparseMatrix smooth_mat; 
-		TensorBSplines::make_smooth_mat(smooth_mat);
+		TensorBSplines::make_smooth_mat(smooth_mat, N);
 
 		SparseMatrix left_mat = data_mat.transpose() * data_mat + smooth_mat * lambda * grid_size * grid_size * grid_size;
 		Vector right_vec = data_mat.transpose() * values;
@@ -102,10 +103,10 @@ void ABSRFittingSDF::fitting(TensorBSplines &tbs) {
 		Vector points_1d;
 		sdf.topoints_1d(points_1d);
 		SparseMatrix data_1d_mat;
-		TensorBSplines::make_data_1d_mat(points_1d, data_1d_mat);
+		TensorBSplines::make_data_1d_mat(points_1d, data_1d_mat, N);
 
 		SparseMatrix smooth_1d_mat; 
-		TensorBSplines::make_smooth_1d_mat(smooth_1d_mat);
+		TensorBSplines::make_smooth_1d_mat(smooth_1d_mat, N);
 
 		SparseMatrix left_mat = data_1d_mat.transpose() * data_1d_mat + smooth_1d_mat * lambda * grid_size;
 		Eigen::ConjugateGradient<SparseMatrix> solver;

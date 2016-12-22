@@ -7,7 +7,7 @@ MESSAGE(STATUS "This is BINARY dir " ${PROJECT_BINARY_DIR})
 MESSAGE(STATUS "This is SOURCE dir " ${PROJECT_SOURCE_DIR})
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-LIST(APPEND CMAKE_CXX_FLAGS -std=c++11)
+#LIST(APPEND CMAKE_CXX_FLAGS -std=c++11)
 
 IF(CMAKE_HOST_UNIX)
 	# Set a default build type if none was specified
@@ -77,7 +77,9 @@ SET(ABSR_INCLUDES include/absr.h
 				  include/tensorbsplines.h
 				  include/activetbs.h
 				  include/hierarchicaltbs.h
-				  include/fastmarching.h) 
+				  include/fastmarching.h
+				  include/polygonizer.h
+				  include/polygonizer.hpp) 
 SET(ABSR_SOURCES src/absr.cpp 
 				 src/main.cpp
 				 src/boundingbox.cpp
@@ -87,7 +89,9 @@ SET(ABSR_SOURCES src/absr.cpp
 				 src/tensorbsplines.cpp
 				 src/activetbs.cpp
 				 src/hierarchicaltbs.cpp
-				 src/fastmarching.cpp)
+				 src/fastmarching.cpp
+				 src/polygonizer.c
+				 src/polygonizer.cpp)
 
 ADD_EXECUTABLE(absr ${ABSR_INCLUDES} ${ABSR_SOURCES})
 TARGET_LINK_LIBRARIES(absr ${VTK_LIBRARIES} ${MATLAB_LIBARIES})

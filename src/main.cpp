@@ -20,19 +20,21 @@
 
 #include <vtkXMLImageDataWriter.h>
 #include <vtkPLYWriter.h>
-
-#include <absr.h>
-#include <io.h>
-#include <boundingbox.h>
-#include <fastmarching.h>
 #include <vtkReverseSense.h>
 
 #include <sstream>
 
+#include <tbsfitting.h>
+#include <io.h>
+#include <boundingbox.h>
+#include <fastmarching.h>
+
+#include <polygonizer.hpp>
+
 using namespace absr;
 
-extern Size N;
-int save = 0;
+int gsave = 0;
+int use_vtk_mc = false;
 
 void savevolume(const vtkSmartPointer<vtkImageData> &volume, const char* filename) {
 	vtkSmartPointer<vtkXMLImageDataWriter> writer =vtkSmartPointer<vtkXMLImageDataWriter>::New();
@@ -117,13 +119,13 @@ void drawcube(vtkSmartPointer<vtkRenderer> &renderer, const TransformMat &transm
 }
 
 void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0, 
-	const TransformMat &transmat = TransformMat::Identity(4, 4), const bool &swapxz = false) {
+	const TransformMat &transmat = TransformMat::Identity(4, 4), const bool invertface = true) {
 
 	vtkSmartPointer<vtkImageData> volume = vtkSmartPointer<vtkImageData>::New();
 	std::cerr << "begin copying sdf to volume:" << std::endl;
 	sdftovolume(sdf, volume);
 	std::cerr << "finished copying sdf to volume:" << std::endl;
-	if(save) {
+	if(gsave) {
 		std::cerr << "begin saving volume_fitting.vti:" << std::endl;
 		savevolume(volume, "volume_fitting.vti");
 		std::cerr << "finished saving volume_fitting.vti:" << std::endl;
@@ -135,14 +137,12 @@ void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0,
 		vtkSmartPointer<vtkMarchingCubes>::New();
 	surface= volumetosurface(mc, volume);
 
-	TransformMat swapxzmat = TransformMat::Identity(4, 4);
-	if (swapxz) swapxzmat << 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1;
 	vtkSmartPointer<vtkTransformPolyDataFilter> tfilter = 
 		vtkSmartPointer<vtkTransformPolyDataFilter>::New();
-	surface = transformsurface(tfilter, surface, transmat*swapxzmat);
+	surface = transformsurface(tfilter, surface, transmat);
 	vtkSmartPointer<vtkReverseSense> reverse = 
 		vtkSmartPointer<vtkReverseSense>::New();
-	if (swapxz) surface = reversesurface(reverse, surface, true, false);
+	if (invertface) surface = reversesurface(reverse, surface, true, false);
 
 	vtkSmartPointer<vtkRenderer> renderer = 
 		vtkSmartPointer<vtkRenderer>::New();
@@ -159,7 +159,7 @@ void vtk_mc_display(const SDF &sdf, Scalar isovalue = 0.0,
 	renderWindow->Render();
 	std::cerr << "finished marchingcubes" << std::endl;
 
-	if (save) {
+	if (gsave) {
 		std::cerr << "begin saving mesh.ply:" << std::endl;
 		vtkSmartPointer<vtkPLYWriter> plyWriter =
 			vtkSmartPointer<vtkPLYWriter>::New();
@@ -202,27 +202,27 @@ void test_sdf_fitting(const PointSet &points, const NormalSet &normals,
 	fm.compute(points, narrow_band_width);
 	fm.tagging();
 	sdf.values_.swap(fm.values_);
-	if(save) {
+	if(gsave) {
 		vtkSmartPointer<vtkImageData> volume = vtkSmartPointer<vtkImageData>::New();
 		sdftovolume(sdf, volume);
 		savevolume(volume, "volume.vti");
 	}
 
-	ABSRFittingSDF fitter(sdf);
+	TBSFittingSDF fitter(sdf);
 	fitter.set_parameters(lambda);
 	fitter.fitting(tbs);
 }
 
 void test_3L_fitting(const PointSet &points, const NormalSet &normals, 
 	Scalar lambda, Scalar epsilon, TensorBSplines &tbs) {
-	ABSRFitting3L fitter(points, normals);
+	TBSFitting3L fitter(points, normals);
 	fitter.set_parameters(lambda, epsilon);
 	fitter.fitting(tbs);
 }
 
 void test_Juttler_fitting(const PointSet &points, const NormalSet &normals, 
 	Scalar lambda, Scalar kappa, TensorBSplines &tbs) {
-	ABSRFittingJuttler fitter(points, normals);
+	TBSFittingJuttler fitter(points, normals);
 	fitter.set_parameters(lambda, kappa);
 	fitter.fitting(tbs);
 }
@@ -236,7 +236,7 @@ int main(int argc, char** argv) {
 	std::cerr << "normals_file = " << normals_file << std::endl;
 
 	Scalar lambda = 0, aux;
-	Size mc_grid_size = 128, sdf_grid_size = 256;
+	Size N = 32, mc_grid_size = 128, sdf_grid_size = 256;
 	std::stringstream ss3, ss4, ss5, ss6, ss7, ss8, ss9;
 
 	Index method = 0;
@@ -245,7 +245,7 @@ int main(int argc, char** argv) {
 	if(argc>5) {ss5.str(argv[5]); ss5>>mc_grid_size;}
 	if(argc>6) {ss6.str(argv[6]); ss6>>lambda;} 
 	if(argc>7) {ss7.str(argv[7]); ss7>>aux;}
-	if(argc>8) {ss8.str(argv[8]); ss8>>save;}
+	if(argc>8) {ss8.str(argv[8]); ss8>>gsave;}
 	if(argc>9) {ss9.str(argv[9]); ss9>>sdf_grid_size;}
 
 	Scalar narrow_band_width = (Scalar) 3.5, epsilon = (Scalar) 0.01, kappa = (Scalar) 0.05;
@@ -266,34 +266,46 @@ int main(int argc, char** argv) {
 		kappa = aux;
 		std::cerr << "kappa = " << kappa << std::endl;
 	}
-	std::cerr << "save = " << save << std::endl;
+	std::cerr << "save = " << gsave << std::endl;
 	if(method == 0) std::cerr << "sdf_grid_size = " << sdf_grid_size << std::endl;
 
 	std::string yes_no;
-	std::cerr << "yes/no: " << std::endl;
+	std::cerr << "yes/no: ";
 	cin >> yes_no;
 	if((yes_no != "y") && (yes_no != "Y") && (yes_no != "yes") && (yes_no != "Yes")) exit(0);
 
 	PointSet points;
 	NormalSet normals;
 	TransformMat transmat = prepare_points_normals(points, normals, points_file, normals_file);
-
-	TensorBSplines tbs;
+	
+	TensorBSplines tbs(N);
 	switch(method) {
 	case 0 : {test_sdf_fitting(points, normals, lambda, narrow_band_width, sdf_grid_size, tbs); break;}
 	case 1 : {test_3L_fitting(points, normals, lambda, epsilon, tbs); break;}
 	case 2 : {test_Juttler_fitting(points, normals, lambda, kappa, tbs); break;}
 	}
 
-	SDF mc_sdf;
-	mc_sdf.grid_size_ = mc_grid_size;
-	mc_sdf.voxel_length_ = 1.0/(mc_sdf.grid_size_-1);
-	PointSet mc_points;
-	mc_sdf.topoints(mc_points);
-	tbs.evaluate(mc_points, mc_sdf.values_);
+	if (use_vtk_mc) {
+		SDF mc_sdf;
+		mc_sdf.grid_size_ = mc_grid_size;
+		mc_sdf.voxel_length_ = 1.0/(mc_sdf.grid_size_-1);
+		PointSet mc_points;
+		mc_sdf.topoints(mc_points);
+		tbs.evaluate(mc_points, mc_sdf.values_);
 
-	if(method == 0) vtk_mc_display(mc_sdf, -0.5/sdf_grid_size, transmat.inverse(), true);
-	else vtk_mc_display(mc_sdf, 0.0, transmat.inverse(), false);
+		if(method == 0) {
+			TransformMat swapxzmat = TransformMat::Identity(4, 4);
+			swapxzmat << 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1;
+			vtk_mc_display(mc_sdf, -0.5/sdf_grid_size, transmat.inverse() * swapxzmat, true);
+		} else vtk_mc_display(mc_sdf, 0.0, transmat.inverse(), false);
+	} else {
+		Polygonizer polyonizer;
+		if(method == 0) {
+			TransformMat swapxzmat = TransformMat::Identity(4, 4);
+			swapxzmat << 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1;
+			polyonizer.compute(tbs, mc_grid_size, transmat.inverse() * swapxzmat, false);
+		} else polyonizer.compute(tbs, mc_grid_size, transmat.inverse(), true);
+	}
 
 	return 0;
 }
