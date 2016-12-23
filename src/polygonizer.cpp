@@ -11,25 +11,22 @@ extern "C" TRIANGLES gtriangles;
 
 using namespace absr;
 
-TensorBSplines gtbs;
+Function *gf;
 Scalar gisovalue = 0.0;
 
-double tbsfunc(double x, double y, double z) {
+double func(double x, double y, double z) {
 	if(x<0 || y<0 || z<0 || x>1 || y>1 || z>1) return 1.0;
-	return gtbs(x, y, z) - gisovalue;
+	return gf->operator()(x, y, z) - gisovalue;
 }
 
-void Polygonizer::compute(absr::TensorBSplines &tbs, absr::Size grid_size, Scalar isovalue,
+void Polygonizer::compute(Function *f, absr::Size grid_size, Scalar isovalue, Scalar x, Scalar y, Scalar z,
 	absr::TransformMat transmat, bool invertface) {
-	int i;
+	gf = f;
 	char *err;
-	gtbs.N_ = tbs.N_;
-	gtbs.controls_.swap(tbs.controls_);
-	gisovalue = isovalue;
 	fprintf(stdout, "ply\n");
 	fprintf(stdout, "format ascii 1.0\n");
 	fprintf(stdout, "comment polygonizer generated\n");
-	if ((err = polygonize((double (*)())tbsfunc, 1.0/grid_size, grid_size, 0.5, 0.5, 0.5, triangle2, 0)) != NULL) {
+	if ((err = polygonize((double (*)())func, 1.0/grid_size, grid_size, x, y, z, triangle2, 0)) != NULL) {
 		fprintf(stdout, "%s\n", err);
 		exit(1);
 	}
@@ -43,7 +40,7 @@ void Polygonizer::compute(absr::TensorBSplines &tbs, absr::Size grid_size, Scala
 	fprintf(stdout, "element face %d\n", gntris);
 	fprintf(stdout, "property list uchar int vertex_indices\n");
 	fprintf(stdout, "end_header\n");
-	for (i = 0; i < gvertices.count; i++) {
+	for (int i = 0; i < gvertices.count; i++) {
 		VERTEX v;
 		v = gvertices.ptr[i];
 		absr::Point pt(4);
@@ -56,7 +53,7 @@ void Polygonizer::compute(absr::TensorBSplines &tbs, absr::Size grid_size, Scala
 			pt.x(), pt.y(),	pt.z(),
 			nm.x(),	nm.y(),	nm.z());
 	}
-	for (i = 0; i < gtriangles.count; i++) {
+	for (int i = 0; i < gtriangles.count; i++) {
 		TRIANGLE t;
 		t = gtriangles.ptr[i];
 		if(invertface) fprintf(stdout, "3 %d %d %d\n", t.i1, t.i3, t.i2);

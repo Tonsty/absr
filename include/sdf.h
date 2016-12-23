@@ -1,7 +1,7 @@
 #ifndef ABSR_SDF_H
 #define ABSR_SDF_H
 
-#include <common.h>
+#include <typedefs.h>
 
 namespace absr {
 	struct SDF {

@@ -22,17 +22,23 @@ namespace absr {
 	typedef Eigen::Array<Scalar, Eigen::Dynamic, Eigen::Dynamic> Array;
 	typedef Eigen::Array<Index, Eigen::Dynamic, Eigen::Dynamic> Arrayi;
 
+	typedef Eigen::SparseMatrix<Scalar> SparseMatrix;
+	typedef Eigen::Triplet<Scalar> Triplet;
+	typedef std::vector<std::pair<Index, Scalar>> IndexWeightVec;
+
+	typedef Matrix TransformMat;
+
+	struct Function {
+		virtual void evaluate(const PointSet &points, Vector &values) = 0;
+		virtual Scalar operator()(Scalar x, Scalar y, Scalar z) = 0;
+	};
+
 	typedef PointSet Vertices;
 	typedef Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic> Faces;
 	struct Mesh {
 		PointSet verts_;
 		Faces faces_;
 	};
-
-	typedef Eigen::SparseMatrix<Scalar> SparseMatrix;
-	typedef Eigen::Triplet<Scalar> Triplet;
-
-	typedef Matrix TransformMat;
 };
 
 #endif

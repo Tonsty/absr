@@ -1,7 +1,7 @@
 #ifndef ABSR_ABSR_H
 #define ABSR_ABSR_H
 
-#include <common.h>
+#include <typedefs.h>
 #include <sdf.h>
 #include <tensorbsplines.h>
 

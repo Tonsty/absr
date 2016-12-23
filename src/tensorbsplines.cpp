@@ -3,27 +3,26 @@
 
 using namespace absr;
 
-static struct NormalizedCubicSpline {
-	Matrix B, dB, d2B;
-	NormalizedCubicSpline() {
-		B.resize(4, 4);
-		dB.resize(4, 4);
-		d2B.resize(4, 4);
-		B<< 1, -3, 3, -1,
-			4, 0, -6, 3,
-			1, 3, 3, -3,
-			0, 0, 0, 1;
-		dB<< -3, 6, -3, 0,
-			0, -12, 9, 0,
-			3, 6, -9, 0,
-			0, 0, 3, 0;
-		d2B<< 6, -6, 0, 0,
-			-12, 18, 0, 0,
-			6, -18, 0, 0,
-			0, 6, 0, 0;
-		B/=6; dB/=6; d2B/=6;	
-	}
-} ncs;
+NormalizedCubicSpline TensorBSplines::ncs;
+
+NormalizedCubicSpline::NormalizedCubicSpline() {
+	B.resize(4, 4);
+	dB.resize(4, 4);
+	d2B.resize(4, 4);
+	B<< 1, -3, 3, -1,
+		4, 0, -6, 3,
+		1, 3, 3, -3,
+		0, 0, 0, 1;
+	dB<< -3, 6, -3, 0,
+		0, -12, 9, 0,
+		3, 6, -9, 0,
+		0, 0, 3, 0;
+	d2B<< 6, -6, 0, 0,
+		-12, 18, 0, 0,
+		6, -18, 0, 0,
+		0, 6, 0, 0;
+	B/=6; dB/=6; d2B/=6;	
+}
 
 Vector MULT(const Vector &U, const Vector &V) {
 	Vector W = Vector::Zero(7, 1);
@@ -51,12 +50,12 @@ Matrix INTofMULT(const Matrix &A, const Matrix &B) {
 	return C;
 }
 
-void precompute_pi2(Matrix &pi2) {
+void TensorBSplines::precompute_pi2(Matrix &pi2) {
 	const Matrix &d2B = ncs.d2B;
 	pi2 = INTofMULT(d2B,d2B);
 }
 
-void precompute_Pi2(Matrix &Pi2, const Size N) {
+void TensorBSplines::precompute_Pi2(Matrix &Pi2, const Size N) {
 	Matrix pi2;
 	precompute_pi2(pi2);
 
@@ -95,7 +94,7 @@ void TensorBSplines::make_smooth_1d_mat(SparseMatrix &smooth_1d_mat, const Size 
 	std::cerr << "finished smooth_mat" << std::endl;
 }
 
-void make_bs_iws(std::vector<std::pair<Index, Scalar>> &iws, Scalar pos, const Size N) {
+void TensorBSplines::make_bs_iws(IndexWeightVec &iws, Scalar pos, const Size N) {
 	Scalar delta = (Scalar) 1.0/(N-3);
 
 	Index i = (Index)(pos/delta);
@@ -125,7 +124,7 @@ void TensorBSplines::make_data_1d_mat(const Vector &points_1d, SparseMatrix &dat
 	for (Index row_index = 0; row_index < npts; row_index++) {
 		Scalar pos = points_1d(row_index);
 
-		std::vector<std::pair<Index, Scalar>> iws;
+		IndexWeightVec iws;
 		make_bs_iws(iws, pos, N);
 		for(auto it = iws.begin(); it!= iws.end(); it++) {
 			Index column_index = it->first;
@@ -138,14 +137,14 @@ void TensorBSplines::make_data_1d_mat(const Vector &points_1d, SparseMatrix &dat
 	std::cerr << "finished data_1d_mat" << std::endl;
 }
 
-void precompute_pi0pi1pi2(Matrix &pi0, Matrix &pi1, Matrix &pi2) {
+void TensorBSplines::precompute_pi0pi1pi2(Matrix &pi0, Matrix &pi1, Matrix &pi2) {
 	const Matrix &B = ncs.B, &dB = ncs.dB, &d2B = ncs.d2B;
 	pi0 = INTofMULT(B,B);
 	pi1 = INTofMULT(dB,dB);
 	pi2 = INTofMULT(d2B,d2B);
 }
 
-void precompute_Pi0Pi1Pi2(Matrix &Pi0, Matrix &Pi1, Matrix &Pi2, const Size N) {
+void TensorBSplines::precompute_Pi0Pi1Pi2(Matrix &Pi0, Matrix &Pi1, Matrix &Pi2, const Size N) {
 	Matrix pi0, pi1, pi2;
 	precompute_pi0pi1pi2(pi0, pi1, pi2);
 
@@ -205,7 +204,7 @@ void TensorBSplines::make_smooth_mat(SparseMatrix &smooth_mat, const Size N) {
 	std::cerr << "finished smooth_mat" << std::endl;
 }
 
-void make_tbs_iws(std::vector<std::pair<Index, Scalar>> &iws, Scalar xpos, Scalar ypos, Scalar zpos, const Size N) {
+void TensorBSplines::make_tbs_iws(IndexWeightVec &iws, Scalar xpos, Scalar ypos, Scalar zpos, const Size N) {
 	Scalar delta = (Scalar) 1.0/(N-3);
 
 	Index i = (Index)(xpos/delta), j = (Index)(ypos/delta), k = (Index)(zpos/delta);
@@ -276,7 +275,7 @@ void TensorBSplines::make_data_mat(const PointSet &points, SparseMatrix &data_ma
 	//	Point point = points.row(row_index);
 	//	Scalar xpos = point.x(), ypos = point.y(), zpos = point.z();
 
-	//	std::vector<std::pair<Index, Scalar>> iws;
+	//	IndexWeightVec iws;
 	//	make_tbs_iws(iws, xpos, ypos, zpos);
 	//	for(auto it = iws.begin(); it!= iws.end(); it++) {
 	//		Index column_index = it->first;
@@ -289,11 +288,8 @@ void TensorBSplines::make_data_mat(const PointSet &points, SparseMatrix &data_ma
 	std::cerr << "finished data_mat" << std::endl;
 }
 
-void make_tbs_iws_duvw_ws(std::vector<std::pair<Index, Scalar>> &iws, 
-						  std::vector<Scalar> &du_ws,
-						  std::vector<Scalar> &dv_ws,
-						  std::vector<Scalar> &dw_ws,
-						  Scalar xpos, Scalar ypos, Scalar zpos, const Size N) {
+void TensorBSplines::make_tbs_iws_duvw_ws(IndexWeightVec &iws, std::vector<Scalar> &du_ws,
+	std::vector<Scalar> &dv_ws, std::vector<Scalar> &dw_ws, Scalar xpos, Scalar ypos, Scalar zpos, const Size N) {
 	Scalar delta = (Scalar) 1.0/(N-3);
 
 	Index i = (Index)(xpos/delta), j = (Index)(ypos/delta), k = (Index)(zpos/delta);
@@ -331,7 +327,7 @@ void make_tbs_iws_duvw_ws(std::vector<std::pair<Index, Scalar>> &iws,
 }
 
 void TensorBSplines::make_data_duvw_mat(const PointSet &points, SparseMatrix &data_mat, SparseMatrix &du_mat, 
-						SparseMatrix &dv_mat, SparseMatrix &dw_mat, const Size N) {
+	SparseMatrix &dv_mat, SparseMatrix &dw_mat, const Size N) {
 
 	std::cerr << "prepare data_mat, du_mat, dv_mat, dw_mat" << std::endl;
 
@@ -384,9 +380,9 @@ void TensorBSplines::make_data_duvw_mat(const PointSet &points, SparseMatrix &da
 	//	Point point = points.row(row_index);
 	//	Scalar xpos = point.x(), ypos = point.y(), zpos = point.z();
 
-	//	std::vector<std::pair<Index, Scalar>> iws;
+	//	IndexWeightVec iws;
 	//	std::vector<Scalar> du_ws, dv_ws, dw_ws;
-	//	make_tbs_iws_duvw_ws(iws, du_ws, dv_ws, dw_ws, xpos, ypos, zpos);
+	//	make_tbs_iws_duvw_ws(iws, du_ws, dv_ws, dw_ws, xpos, ypos, zpos, N);
 	//	Index h = 0;
 	//	for(auto it = iws.begin(); it!= iws.end(); it++, h++) {
 	//		Index column_index = it->first;
@@ -404,7 +400,6 @@ void TensorBSplines::make_data_duvw_mat(const PointSet &points, SparseMatrix &da
 
 	std::cerr << "finished data_mat, du_mat, dv_mat, dw_mat" << std::endl;
 }
-
 
 Scalar TensorBSplines::operator()(Scalar x, Scalar y, Scalar z) {
 	const Size N = N_; 
@@ -459,17 +454,7 @@ void TensorBSplines::evaluate(const PointSet &points, Vector &values) {
 	//for (Index row_index = 0; row_index < npts; row_index++) {
 	//	Point point = points.row(row_index);
 	//	Scalar xpos = point.x(), ypos = point.y(), zpos = point.z();
-
-	//	std::vector<std::pair<Index, Scalar>> iws;
-	//	make_tbs_iws(iws, xpos, ypos, zpos, N);
-
-	//	Scalar sum_value = 0;
-	//	for(auto it = iws.begin(); it!= iws.end(); it++) {
-	//		Index control_index = it->first;
-	//		Scalar weight = it->second;
-	//		sum_value += controls_(control_index) * weight;
-	//	}
-	//	values(row_index) = sum_value;
+	//	values(row_index) = (*this)(xpos, ypos, zpos);
 	//}
 
 	std::cerr << "finished evaluation" << std::endl;

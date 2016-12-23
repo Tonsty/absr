@@ -1,7 +1,7 @@
 #ifndef ABSR_BOUNDINGBOX_H
 #define ABSR_BOUNDINGBOX_H
 
-#include <common.h>
+#include <typedefs.h>
 
 namespace absr {
 	struct BoundingBox {

@@ -1,7 +1,7 @@
 #ifndef ABSR_BSPLINE_H
 #define ABSR_BSPLINE_H
 
-#include <common.h>
+#include <typedefs.h>
 
 namespace absr {
 	class BSplines {

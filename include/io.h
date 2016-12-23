@@ -1,7 +1,7 @@
 #ifndef ABSR_IO_H
 #define ABSR_IO_H
 
-#include <common.h>
+#include <typedefs.h>
 
 namespace absr {
 	struct IO {

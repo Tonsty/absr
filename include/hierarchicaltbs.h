@@ -4,7 +4,7 @@
 #include <common.h>
 
 namespace absr {
-	struct HierarchicalTBS {
+	struct HierarchicalTBS : Function{
 		HierarchicalTBS() {};
 
 	};

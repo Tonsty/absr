@@ -68,19 +68,20 @@ INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR}
 	      			${MATLAB_INCLUDE_DIR}
 	      			include)
 
-SET(ABSR_INCLUDES include/absr.h
+SET(ABSR_INCLUDES include/tbsfitting.h
 				  include/boundingbox.h
 				  include/bspline.h
-				  include/common.h
+				  include/typedefs.h
 				  include/io.h
 				  include/sdf
 				  include/tensorbsplines.h
 				  include/activetbs.h
+				  include/activetbsfitting.h
 				  include/hierarchicaltbs.h
 				  include/fastmarching.h
 				  include/polygonizer.h
 				  include/polygonizer.hpp) 
-SET(ABSR_SOURCES src/absr.cpp 
+SET(ABSR_SOURCES src/tbsfitting.cpp 
 				 src/main.cpp
 				 src/boundingbox.cpp
 				 src/bspline.cpp
@@ -88,6 +89,7 @@ SET(ABSR_SOURCES src/absr.cpp
 				 src/sdf.cpp
 				 src/tensorbsplines.cpp
 				 src/activetbs.cpp
+				 src/activetbsfitting.h				 
 				 src/hierarchicaltbs.cpp
 				 src/fastmarching.cpp
 				 src/polygonizer.c
