@@ -4,6 +4,9 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
+#include <vector>
+#include <unordered_map>
+
 namespace absr {
 	typedef float Scalar;
 	typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
@@ -32,6 +35,9 @@ namespace absr {
 		virtual void evaluate(const PointSet &points, Vector &values) = 0;
 		virtual Scalar operator()(Scalar x, Scalar y, Scalar z) = 0;
 	};
+
+	typedef std::unordered_map<Index, Index> MapType;
+	typedef std::vector<MapType> MapVecType;
 
 	typedef PointSet Vertices;
 	typedef Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic> Faces;

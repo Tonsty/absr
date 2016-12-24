@@ -5,7 +5,6 @@
 using namespace absr;
 
 void ActiveTBS::evaluate(const PointSet &points, Vector &values) {
-	const Size N = N_; 
 	Size npts = (Size) points.rows();
 	values = Vector::Zero(npts);
 
@@ -29,13 +28,16 @@ Scalar ActiveTBS::operator()(Scalar x, Scalar y, Scalar z) {
 
 	Scalar sum_value = 0;
 	for(auto it = iws.begin(); it!= iws.end(); it++) {
-		Index control_index = it->first;
+		Index virtual_control_index = it->first;
 		Scalar weight = it->second;
 		Scalar coefficient;
-		auto amp_it = amp.find(control_index);
+		auto amp_it = amp.find(virtual_control_index);
 		if(amp_it == amp.end()) {		
 			coefficient = 1.0; //evaluate at inactive region
-		} else coefficient = controls_(amp_it->second);
+		} else {
+			Index real_control_index = amp_it->second;
+			coefficient = controls_(real_control_index);
+		}
 		sum_value += coefficient * weight;
 	}
 
@@ -46,21 +48,31 @@ void ActiveTBS::generate_active_map(MapType &amp, const PointSet &points, const 
 	const Size npts = (Size) points.rows();
 	const Scalar delta = (Scalar) 1.0/(N-3);
 
-	for (Index row_index = 0; row_index < npts; row_index++) {
-		Scalar xpos = points(row_index, 0), ypos = points(row_index, 1), zpos = points(row_index, 2);
-		Index i = (Index)(xpos/delta), j = (Index)(ypos/delta), k = (Index)(zpos/delta);
-		i = (i>=N-3) ? (N-4) : i;
-		j = (j>=N-3) ? (N-4) : j;
-		k = (k>=N-3) ? (N-4) : k;
+	if(N < 4) {
+		std::cerr << "knots should be at least 4" << std::endl;
+		exit(0);
+	}else if (N == 4) {
+		for (Index virtual_index = 0; virtual_index < 64; virtual_index++) {
+			Index real_index = virtual_index;
+			amp[virtual_index] = real_index;
+		}
+	}else {
+		for (Index row_index = 0; row_index < npts; row_index++) {
+			Scalar xpos = points(row_index, 0), ypos = points(row_index, 1), zpos = points(row_index, 2);
+			Index i = (Index)(xpos/delta), j = (Index)(ypos/delta), k = (Index)(zpos/delta);
+			i = (i>=N-3) ? (N-4) : i;
+			j = (j>=N-3) ? (N-4) : j;
+			k = (k>=N-3) ? (N-4) : k;
 
-		for(Index t = 0; t <= 3; t++) {
-			for(Index s = 0; s <= 3; s++) {
-				for(Index r = 0; r <= 3; r++) {
-					Index index = i+r+(j+s)*N+(k+t)*N*N;
-					auto amp_it = amp.find(index);
-					if(amp_it == amp.end()) {
-						Size real_index = (Size) amp.size();
-						amp[index] = real_index;
+			for(Index t = 0; t <= 3; t++) {
+				for(Index s = 0; s <= 3; s++) {
+					for(Index r = 0; r <= 3; r++) {
+						Index virtual_index = i+r+(j+s)*N+(k+t)*N*N;
+						auto amp_it = amp.find(virtual_index);
+						if(amp_it == amp.end()) {
+							Size real_index = (Size) amp.size();
+							amp[virtual_index] = real_index;
+						}
 					}
 				}
 			}

@@ -1,6 +1,7 @@
 #include <polygonizer.h>
 #include <polygonizer.hpp>
 #include <tensorbsplines.h>
+#include <iostream>
 
 extern "C" int triangle2();
 extern "C" char* polygonize(double (*function)(), double size, int bounds, 
@@ -21,6 +22,8 @@ double func(double x, double y, double z) {
 
 void Polygonizer::compute(Function *f, absr::Size grid_size, Scalar isovalue, Scalar x, Scalar y, Scalar z,
 	absr::TransformMat transmat, bool invertface) {
+
+	std::cerr << "begin polygonzation:" << std::endl;
 	gf = f;
 	char *err;
 	fprintf(stdout, "ply\n");
@@ -30,6 +33,8 @@ void Polygonizer::compute(Function *f, absr::Size grid_size, Scalar isovalue, Sc
 		fprintf(stdout, "%s\n", err);
 		exit(1);
 	}
+	std::cerr << "finished polygonzation:" << std::endl;
+
 	fprintf(stdout, "element vertex %d\n", gvertices.count);
 	fprintf(stdout, "property float x\n"); 
 	fprintf(stdout, "property float y\n");

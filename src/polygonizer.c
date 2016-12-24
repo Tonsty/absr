@@ -91,7 +91,7 @@
 #define TET	0   /* use tetrahedral decomposition */
 #define NOTET 1 /* no tetrahedral decomposition  */
 
-#define RES	10  /* # converge iterations    */
+#define RES	5  /* # converge iterations    */
 
 #define L	0   /* left direction:	-x, -i  */
 #define R	1   /* right direction:	+x, +i  */

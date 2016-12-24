@@ -2,6 +2,7 @@
 #include <fastmarching.h>
 #include <tbsfitting.h>
 #include <activetbsfitting.h>
+#include <hierarchicaltbsfitting.h>
 #include <io.h>
 #include <boundingbox.h>
 
@@ -230,4 +231,18 @@ void test_active_Juttler_fitting(const PointSet &points, const NormalSet &normal
 		ActiveTBSFittingJuttler fitter(points, normals);
 		fitter.set_parameters(lambda, kappa);
 		fitter.fitting(atbs);
+}
+
+void test_hierarchical_3L_fitting(const PointSet &points, const NormalSet &normals, 
+	Scalar lambda, Scalar epsilon, HierarchicalTBS &htbs) {
+		HierarchicalTBSFitting3L fitter(points, normals);
+		fitter.set_parameters(lambda, epsilon);
+		fitter.fitting(htbs);
+}
+
+void test_hierarchical_Juttler_fitting(const PointSet &points, const NormalSet &normals, 
+	Scalar lambda, Scalar kappa, HierarchicalTBS &htbs) {
+		HierarchicalTBSFittingJuttler fitter(points, normals);
+		fitter.set_parameters(lambda, kappa);
+		fitter.fitting(htbs);
 }

@@ -69,18 +69,27 @@ int main(int argc, char** argv) {
 	//}
 	//Function *f = &tbs;
 
-	ActiveTBS atbs(N);
+	//ActiveTBS atbs(N);
+	//switch(method) {
+	//case 0 : {exit(0); break;}
+	//case 1 : {test_active_3L_fitting(points, normals, lambda, epsilon, atbs); break;}
+	//case 2 : {test_active_Juttler_fitting(points, normals, lambda, kappa, atbs); break;}
+	//}
+	//Function *f = &atbs;
+
+	Size L = N;
+	HierarchicalTBS htbs(L);
 	switch(method) {
 	case 0 : {exit(0); break;}
-	case 1 : {test_active_3L_fitting(points, normals, lambda, epsilon, atbs); break;}
-	case 2 : {test_active_Juttler_fitting(points, normals, lambda, kappa, atbs); break;}
+	case 1 : {test_hierarchical_3L_fitting(points, normals, lambda, epsilon, htbs); break;}
+	case 2 : {test_hierarchical_Juttler_fitting(points, normals, lambda, kappa, htbs); break;}
 	}
-	Function *f = &atbs;
+	Function *f = &htbs;
 
 	if (guse_vtk_mc) {
 		SDF mc_sdf;
 		mc_sdf.grid_size_ = mc_grid_size;
-		mc_sdf.voxel_length_ = 1.0/(mc_sdf.grid_size_-1);
+		mc_sdf.voxel_length_ = (Scalar) 1.0/(mc_sdf.grid_size_-1);
 		PointSet mc_points;
 		mc_sdf.topoints(mc_points);
 		f->evaluate(mc_points, mc_sdf.values_);

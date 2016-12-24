@@ -1,25 +1,25 @@
-#ifndef ACTIVETBSFITTING_H
-#define ACTIVETBSFITTING_H
+#ifndef HIERARCHICALTBSFITTING_H
+#define HIERARCHICALTBSFITTING_H
 
 #include <typedefs.h>
-#include <activetbs.h>
+#include <hierarchicaltbs.h>
 
 namespace absr {
-	
-	class ActiveTBSFitting {
+
+	class HierarchicalTBSFitting {
 	public:
-		virtual void fitting(ActiveTBS &atbs)=0;
+		virtual void fitting(HierarchicalTBS &htbs)=0;
 	};
 
-	class ActiveTBSFitting3L : public ActiveTBSFitting {
+	class HierarchicalTBSFitting3L : public HierarchicalTBSFitting {
 	public:
-		ActiveTBSFitting3L(const PointSet &points, const NormalSet normals) : 
+		HierarchicalTBSFitting3L(const PointSet &points, const NormalSet normals) : 
 		  points_(points), normals_(normals), lambda_((Scalar) 0.07), epsilon_((Scalar) 0.01) {}
 		  void set_parameters(Scalar lambda, Scalar epsilon) {
 			  lambda_ = lambda;
 			  epsilon_ = epsilon;
 		  }
-		  virtual void fitting(ActiveTBS &atbs);
+		  virtual void fitting(HierarchicalTBS &htbs);
 	protected:
 		PointSet points_;
 		NormalSet normals_;
@@ -27,22 +27,21 @@ namespace absr {
 		Scalar epsilon_;
 	};
 
-	class ActiveTBSFittingJuttler: public ActiveTBSFitting {
+	class HierarchicalTBSFittingJuttler: public HierarchicalTBSFitting {
 	public:
-		ActiveTBSFittingJuttler(const PointSet &points, const NormalSet normals) : 
+		HierarchicalTBSFittingJuttler(const PointSet &points, const NormalSet normals) : 
 		  points_(points), normals_(normals), lambda_((Scalar) 0.08), kappa_((Scalar) 0.05) {}
 		  void set_parameters(Scalar lambda, Scalar kappa) {
 			  lambda_ = lambda;
 			  kappa_ = kappa;
 		  }
-		  virtual void fitting(ActiveTBS &atbs);
+		  virtual void fitting(HierarchicalTBS &htbs);
 	protected:
 		PointSet points_;
 		NormalSet normals_;
 		Scalar lambda_;
 		Scalar kappa_;
 	};
-
 };
 
 #endif

@@ -1,12 +1,10 @@
 #ifndef ACTIVETBS_H
 #define ACTIVETBS_H
 
-#include <unordered_map>
 #include <typedefs.h>
 
 namespace absr {
 	struct ActiveTBS : public Function {
-		typedef std::unordered_map<Index, Index> MapType;
 
 		ActiveTBS(Size N = 32) : N_(N) {}
 

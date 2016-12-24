@@ -11,6 +11,11 @@ namespace absr {
 		NormalizedCubicSpline();
 	};
 
+	struct NormalizedQuadraticSpline {
+		Matrix B, dB, d2B;
+		NormalizedQuadraticSpline();
+	};
+
 	struct TensorBSplines : Function {
 		TensorBSplines(Size N = 32) : N_(N) {};
 		virtual void evaluate(const PointSet &points, Vector &values);

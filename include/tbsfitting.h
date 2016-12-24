@@ -15,7 +15,7 @@ namespace absr {
 	class TBSFitting3L: public TBSFitting {
 	public:
 		TBSFitting3L(const PointSet &points, const NormalSet normals) : 
-		  points_(points), normals_(normals), lambda_(0.07), epsilon_(0.01) {}
+		  points_(points), normals_(normals), lambda_((Scalar) 0.07), epsilon_((Scalar) 0.01) {}
 		void set_parameters(Scalar lambda, Scalar epsilon) {
 			lambda_ = lambda;
 			epsilon_ = epsilon;
@@ -31,7 +31,7 @@ namespace absr {
 	class TBSFittingJuttler: public TBSFitting {
 	public:
 		TBSFittingJuttler(const PointSet &points, const NormalSet normals) : 
-		  points_(points), normals_(normals), lambda_(0.08), kappa_(0.05) {}
+		  points_(points), normals_(normals), lambda_((Scalar) 0.08), kappa_((Scalar) 0.05) {}
 		void set_parameters(Scalar lambda, Scalar kappa) {
 			lambda_ = lambda;
 			kappa_ = kappa;
@@ -46,7 +46,7 @@ namespace absr {
 
 	class TBSFittingSDF: public TBSFitting {
 	public:
-		TBSFittingSDF(const SDF &sdf) : sdf_(sdf), lambda_(0.1), global_fitting_(false) {}
+		TBSFittingSDF(const SDF &sdf) : sdf_(sdf), lambda_((Scalar) 0.1), global_fitting_(false) {}
 		void set_parameters(Scalar lambda, bool global_fitting = false) {
 			lambda_ = lambda;
 			global_fitting_ = global_fitting;
