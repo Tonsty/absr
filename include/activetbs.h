@@ -4,6 +4,7 @@
 #include <typedefs.h>
 
 namespace absr {
+	template <Degree deg>
 	struct ActiveTBS : public Function {
 
 		ActiveTBS(Size N = 32) : N_(N) {}
@@ -22,5 +23,9 @@ namespace absr {
 			SparseMatrix &dv_mat, SparseMatrix &dw_mat, const Size N);
 	}; 
 };
+
+#ifndef ABSR_PREINSTANTIATE
+#include <activetbs.hpp>
+#endif
 
 #endif

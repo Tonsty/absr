@@ -1,4 +1,5 @@
 #include <test.h>
+#include <vtk_help.h>
 
 #include <iostream>
 #include <sstream>
@@ -12,24 +13,22 @@ int guse_vtk_mc = false;
 
 int main(int argc, char** argv) {
 
-	std::string points_file = argv[1];
-	std::string normals_file = argv[2];
+	std::string file = argv[1];
 
-	std::cerr << "points_file = " << points_file << std::endl;
-	std::cerr << "normals_file = " << normals_file << std::endl;
+	std::cerr << "input file = " << file << std::endl;
 
 	Scalar lambda = 0, aux;
 	Size N = 32, mc_grid_size = 128, sdf_grid_size = 256;
-	std::stringstream ss3, ss4, ss5, ss6, ss7, ss8, ss9;
+	std::stringstream ss2, ss3, ss4, ss5, ss6, ss7, ss8;
 
 	Index method = 0;
-	if(argc>3) {ss3.str(argv[3]); ss3>>method;}
-	if(argc>4) {ss4.str(argv[4]); ss4>>N;}
-	if(argc>5) {ss5.str(argv[5]); ss5>>mc_grid_size;}
-	if(argc>6) {ss6.str(argv[6]); ss6>>lambda;} 
-	if(argc>7) {ss7.str(argv[7]); ss7>>aux;}
-	if(argc>8) {ss8.str(argv[8]); ss8>>gsave;}
-	if(argc>9) {ss9.str(argv[9]); ss9>>sdf_grid_size;}
+	if(argc>2) {ss2.str(argv[2]); ss2>>method;}
+	if(argc>3) {ss3.str(argv[3]); ss3>>N;}
+	if(argc>4) {ss4.str(argv[4]); ss4>>mc_grid_size;}
+	if(argc>5) {ss5.str(argv[5]); ss5>>lambda;} 
+	if(argc>6) {ss6.str(argv[6]); ss6>>aux;}
+	if(argc>7) {ss7.str(argv[7]); ss7>>gsave;}
+	if(argc>8) {ss8.str(argv[8]); ss8>>sdf_grid_size;}
 
 	Scalar narrow_band_width = (Scalar) 3.5, epsilon = (Scalar) 0.01, kappa = (Scalar) 0.05;
 
@@ -59,9 +58,9 @@ int main(int argc, char** argv) {
 
 	PointSet points;
 	NormalSet normals;
-	TransformMat transmat = prepare_points_normals(points, normals, points_file, normals_file);
+	TransformMat transmat = prepare_points_normals(points, normals, file);
 	
-	//TensorBSplines tbs(N);
+	//TensorBSplines<2> tbs(N);
 	//switch(method) {
 	//case 0 : {test_sdf_fitting(points, normals, lambda, narrow_band_width, sdf_grid_size, tbs); break;}
 	//case 1 : {test_3L_fitting(points, normals, lambda, epsilon, tbs); break;}
@@ -69,7 +68,7 @@ int main(int argc, char** argv) {
 	//}
 	//Function *f = &tbs;
 
-	//ActiveTBS atbs(N);
+	//ActiveTBS<2> atbs(N);
 	//switch(method) {
 	//case 0 : {exit(0); break;}
 	//case 1 : {test_active_3L_fitting(points, normals, lambda, epsilon, atbs); break;}
@@ -78,7 +77,7 @@ int main(int argc, char** argv) {
 	//Function *f = &atbs;
 
 	Size L = N;
-	HierarchicalTBS htbs(L);
+	HierarchicalTBS<2> htbs(L);
 	switch(method) {
 	case 0 : {exit(0); break;}
 	case 1 : {test_hierarchical_3L_fitting(points, normals, lambda, epsilon, htbs); break;}

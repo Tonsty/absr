@@ -6,12 +6,7 @@
 
 namespace absr {
 
-	class HierarchicalTBSFitting {
-	public:
-		virtual void fitting(HierarchicalTBS &htbs)=0;
-	};
-
-	class HierarchicalTBSFitting3L : public HierarchicalTBSFitting {
+	class HierarchicalTBSFitting3L {
 	public:
 		HierarchicalTBSFitting3L(const PointSet &points, const NormalSet normals) : 
 		  points_(points), normals_(normals), lambda_((Scalar) 0.07), epsilon_((Scalar) 0.01) {}
@@ -19,7 +14,8 @@ namespace absr {
 			  lambda_ = lambda;
 			  epsilon_ = epsilon;
 		  }
-		  virtual void fitting(HierarchicalTBS &htbs);
+		  template<Degree deg>
+		  void fitting(HierarchicalTBS<deg> &htbs);
 	protected:
 		PointSet points_;
 		NormalSet normals_;
@@ -27,7 +23,7 @@ namespace absr {
 		Scalar epsilon_;
 	};
 
-	class HierarchicalTBSFittingJuttler: public HierarchicalTBSFitting {
+	class HierarchicalTBSFittingJuttler {
 	public:
 		HierarchicalTBSFittingJuttler(const PointSet &points, const NormalSet normals) : 
 		  points_(points), normals_(normals), lambda_((Scalar) 0.08), kappa_((Scalar) 0.05) {}
@@ -35,7 +31,8 @@ namespace absr {
 			  lambda_ = lambda;
 			  kappa_ = kappa;
 		  }
-		  virtual void fitting(HierarchicalTBS &htbs);
+		  template<Degree deg>
+		  void fitting(HierarchicalTBS<deg> &htbs);
 	protected:
 		PointSet points_;
 		NormalSet normals_;
@@ -43,5 +40,9 @@ namespace absr {
 		Scalar kappa_;
 	};
 };
+
+#ifndef ABSR_PREINSTANTIATE
+#include <hierarchicaltbsfitting.hpp>
+#endif
 
 #endif

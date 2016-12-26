@@ -18,6 +18,7 @@ namespace absr {
 
 	typedef int Index;
 	typedef Index Size;
+	typedef Size Degree;
 
 	typedef Eigen::Matrix<Index, Eigen::Dynamic, 1> Vectori;
 	typedef Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic> Matrixi;

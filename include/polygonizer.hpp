@@ -1,7 +1,7 @@
 #ifndef POLYGONIZER_HPP
 #define POLYGONIZER_HPP
 
-#include <tensorbsplines.h>
+#include <typedefs.h>
 
 namespace absr {
 	struct Polygonizer {

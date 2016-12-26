@@ -4,9 +4,10 @@
 #include <typedefs.h>
 
 namespace absr {
+	template<Degree deg>
 	struct HierarchicalTBS : Function{
 
-		HierarchicalTBS(Size L = 5, Size root_N = 4) : L_(L), root_N_(root_N) {};
+		HierarchicalTBS(Size L = 5, Size root_N = (deg+1)) : L_(L), root_N_(root_N) {};
 
 		virtual void evaluate(const PointSet &points, Vector &values);
 		virtual Scalar operator()(Scalar x, Scalar y, Scalar z);
@@ -18,12 +19,11 @@ namespace absr {
 		Vector controls_;
 		Size L_;
 		Size root_N_;
-
-		static void make_data_mat(const MapVecType &amps, const PointSet &points, SparseMatrix &data_mat, const Size L, const Size root_N = 4);
-		static void make_smooth_mat(const MapVecType &amps, SparseMatrix &smooth_mat, const Size L, const Size root_N = 4);
-		static void make_data_duvw_mat(const MapVecType &amps, const PointSet &points, SparseMatrix &data_mat, SparseMatrix &du_mat, 
-			SparseMatrix &dv_mat, SparseMatrix &dw_mat, const Size L, const Size root_N = 4);
 	};
 };
+
+#ifndef ABSR_PREINSTANTIATE
+#include <hierarchicaltbs.hpp>
+#endif
 
 #endif

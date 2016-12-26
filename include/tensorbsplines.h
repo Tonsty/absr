@@ -5,17 +5,13 @@
 #include <sdf.h>
 
 namespace absr {
-
-	struct NormalizedCubicSpline {
+	template<Degree deg = 2>
+	struct PolyFormSpline {
 		Matrix B, dB, d2B;
-		NormalizedCubicSpline();
+		PolyFormSpline();
 	};
 
-	struct NormalizedQuadraticSpline {
-		Matrix B, dB, d2B;
-		NormalizedQuadraticSpline();
-	};
-
+	template<Degree deg = 2>
 	struct TensorBSplines : Function {
 		TensorBSplines(Size N = 32) : N_(N) {};
 		virtual void evaluate(const PointSet &points, Vector &values);
@@ -41,8 +37,12 @@ namespace absr {
 		static void precompute_pi0pi1pi2(Matrix &pi0, Matrix &pi1, Matrix &pi2);
 		static void precompute_Pi0Pi1Pi2(Matrix &Pi0, Matrix &Pi1, Matrix &Pi2, const Size N);
 		
-		static NormalizedCubicSpline ncs;
+		static PolyFormSpline<deg> pfs;
 	};
 };
+
+#ifndef ABSR_PREINSTANTIATE
+#include <tensorbsplines.hpp>
+#endif
 
 #endif
