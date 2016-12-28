@@ -12,6 +12,7 @@ namespace absr {
 		const Size L = htbs.L_;
 		const Size root_N = htbs.root_N_;
 		const Size npts = (Size) points.rows();
+		MapVecType &amps = htbs.amps_;
 
 		Vector &controls = htbs.controls_;
 
@@ -22,20 +23,24 @@ namespace absr {
 
 		std::cerr << "\nbegin solving active 3L:" << std::endl;
 
-		htbs.amps_.resize(L);
+		SparseMatrix global_smooth_mat;
+		std::vector<Vector> ti0s, ti1s, ti2s;
+		amps.resize(L);
 		for (Index level = 0; level < L; level++) {
-			MapType &amp = htbs.amps_[level];
+			MapType &amp = amps[level];
 			const Size current_N = (root_N-deg)*(1<<level) + deg;
 			ActiveTBS<deg>::generate_active_map(amp, points_3L, current_N);
 
 			SparseMatrix data_mat;
 			ActiveTBS<deg>::make_data_mat(amp, points_3L, data_mat, current_N);
 
-			SparseMatrix smooth_mat; 
-			ActiveTBS<deg>::make_smooth_mat(amp, smooth_mat, current_N);
+			SparseMatrix smooth_mat;
+			Vector smooth_vec;
+			HierarchicalTBS<deg>::make_smooth_mat_vec(amps, global_smooth_mat, controls, level, 
+				smooth_mat, smooth_vec, ti0s, ti1s, ti2s, root_N);
 
 			SparseMatrix left_mat = data_mat.transpose() * data_mat + smooth_mat * lambda * npts * 3;
-			Vector right_vec = data_mat.transpose() * values_3L;
+			Vector right_vec = data_mat.transpose() * values_3L + smooth_vec * lambda * npts * 3;
 
 			std::cerr << "equation number = 1, equation size = " << 3*npts << " * " << amp.size() << std::endl;
 

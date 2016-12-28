@@ -148,14 +148,16 @@ namespace absr {
 						Index virtual_column_index = kk*N*N + jj*N + ii;
 						auto amp_it2 = amp.find(virtual_column_index);
 						if(amp_it2 != amp.end()) {
+							Index real_column_index = amp_it2->second;
+							if(real_column_index < real_row_index) continue;
 							Scalar weight = Pi2(i, ii) * Pi0(j, jj) * Pi0(k, kk) 
 								+ Pi0(i, ii) * Pi2(j, jj) * Pi0(k, kk)
 								+ Pi0(i, ii) * Pi0(j, jj) * Pi2(k, kk)
 								+ Pi1(i, ii) * Pi1(j, jj) * Pi0(k, kk) * 2
 								+ Pi1(i, ii) * Pi0(j, jj) * Pi1(k, kk) * 2
 								+ Pi0(i, ii) * Pi1(j, jj) * Pi1(k, kk) * 2;
-							Index real_column_index = amp_it2->second;
 							smooth_tripleList.push_back(Triplet(real_row_index, real_column_index, weight));
+							if(real_column_index > real_row_index) smooth_tripleList.push_back(Triplet(real_column_index, real_row_index, weight));
 						}
 					}
 				}

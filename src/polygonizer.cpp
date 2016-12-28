@@ -17,7 +17,7 @@ Scalar gisovalue = 0.0;
 
 double func(double x, double y, double z) {
 	if(x<0 || y<0 || z<0 || x>1 || y>1 || z>1) return 1.0;
-	return gf->operator()(x, y, z) - gisovalue;
+	return gf->operator()((Scalar) x, (Scalar) y, (Scalar) z) - gisovalue;
 }
 
 void Polygonizer::compute(Function *f, absr::Size grid_size, Scalar isovalue, Scalar x, Scalar y, Scalar z,
@@ -49,10 +49,10 @@ void Polygonizer::compute(Function *f, absr::Size grid_size, Scalar isovalue, Sc
 		VERTEX v;
 		v = gvertices.ptr[i];
 		absr::Point pt(4);
-		pt << v.position.x, v.position.y, v.position.z, 1.0;
+		pt << (Scalar) v.position.x, (Scalar) v.position.y, (Scalar) v.position.z, (Scalar) 1.0;
 		pt = transmat * pt;
 		absr::Normal nm(4);
-		nm << v.normal.x, v.normal.y, v.normal.z, 0.0;
+		nm << (Scalar) v.normal.x, (Scalar) v.normal.y, (Scalar) v.normal.z, (Scalar) 0.0;
 		nm = transmat * nm;
 		fprintf(stdout, "%f %f %f %f %f %f\n",
 			pt.x(), pt.y(),	pt.z(),

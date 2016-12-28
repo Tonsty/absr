@@ -76,6 +76,14 @@ int main(int argc, char** argv) {
 	//}
 	//Function *f = &atbs;
 
+	//Vector t0, t1, t2;
+	//HierarchicalTBS<2>::precompute_ti0ti1ti2(1, t0, t1, t2);
+	//for (Index i = 0; i < t0.size(); i++) {
+	//	std::cerr << "t0(" << i << ") = " << t0(i) << ", "
+	//		<< "t1(" << i << ") = " << t1(i) << ", "
+	//		<< "t2(" << i << ") = " << t2(i) << std::endl;
+	//}
+
 	Size L = N;
 	HierarchicalTBS<2> htbs(L);
 	switch(method) {

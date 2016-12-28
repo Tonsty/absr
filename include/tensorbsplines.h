@@ -3,12 +3,14 @@
 
 #include <typedefs.h>
 #include <sdf.h>
+#include <math_help.h>
 
 namespace absr {
-	template<Degree deg = 2>
-	struct PolyFormSpline {
-		Matrix B, dB, d2B;
+	template<Degree deg = 2, Degree der = 0>
+	struct PolyFormSpline : Function1D {
+		Matrix B;
 		PolyFormSpline();
+		Scalar operator()(Scalar x);
 	};
 
 	template<Degree deg = 2>
@@ -37,7 +39,9 @@ namespace absr {
 		static void precompute_pi0pi1pi2(Matrix &pi0, Matrix &pi1, Matrix &pi2);
 		static void precompute_Pi0Pi1Pi2(Matrix &Pi0, Matrix &Pi1, Matrix &Pi2, const Size N);
 		
-		static PolyFormSpline<deg> pfs;
+		static PolyFormSpline<deg, 0> pfs0;
+		static PolyFormSpline<deg, 1> pfs1;
+		static PolyFormSpline<deg, 2> pfs2;
 	};
 };
 

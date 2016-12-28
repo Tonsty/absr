@@ -4,54 +4,53 @@
 namespace absr {
 
 	template<Degree deg>
-	PolyFormSpline<deg> TensorBSplines<deg>::pfs;
+	PolyFormSpline<deg, 0> TensorBSplines<deg>::pfs0;
+	template<Degree deg>
+	PolyFormSpline<deg, 1> TensorBSplines<deg>::pfs1;
+	template<Degree deg>
+	PolyFormSpline<deg, 2> TensorBSplines<deg>::pfs2;
 
 	Vector MULT(const Vector &U, const Vector &V);
 	Matrix INTofMULT(const Matrix &A, const Matrix &B);
 
-	template<Degree deg>
-	PolyFormSpline<deg>::PolyFormSpline() {
+	template<Degree deg, Degree der>
+	PolyFormSpline<deg, der>::PolyFormSpline() {
 		switch (deg) {
 		case 2: {
 			B.resize(3, 3);
-			dB.resize(3, 3);
-			d2B.resize(3, 3);
-			B << 1, -2, 1,
-				1, 2, -2,
-				0, 0, 1;
-			dB << -2, 2, 0,
-				2, -4, 0,
-				0, 2, 0;
-			d2B << 2, 0, 0,
-				-4, 0, 0,
-				2, 0, 0;
-			B/=2; dB/=2; d2B/=2;
+			switch(der) {
+			case 0: { B << 1, -2, 1, 1, 2, -2, 0, 0, 1; break; }
+			case 1: { B << -2, 2, 0, 2, -4, 0, 0, 2, 0; break; }
+			case 2: { B << 2, 0, 0, -4, 0, 0, 2, 0, 0; break;}
+			default: { std::cerr << "der must be 0, 1 or 2" << std::endl; exit(0); } 
+			};
+			B/=2;
 			break;
-				}
+				};
 		case 3: {
 			B.resize(4, 4);
-			dB.resize(4, 4);
-			d2B.resize(4, 4);
-			B<< 1, -3, 3, -1,
-				4, 0, -6, 3,
-				1, 3, 3, -3,
-				0, 0, 0, 1;
-			dB<< -3, 6, -3, 0,
-				0, -12, 9, 0,
-				3, 6, -9, 0,
-				0, 0, 3, 0;
-			d2B<< 6, -6, 0, 0,
-				-12, 18, 0, 0,
-				6, -18, 0, 0,
-				0, 6, 0, 0;
-			B/=6; dB/=6; d2B/=6;	
+			switch(der) {
+			case 0: { B<< 1, -3, 3, -1, 4, 0, -6, 3, 1, 3, 3, -3,	0, 0, 0, 1; break;}
+			case 1: { B<< -3, 6, -3, 0, 0, -12, 9, 0, 3, 6, -9, 0, 0, 0, 3, 0; break;}
+			case 2: { B<< 6, -6, 0, 0, -12, 18, 0, 0, 6, -18, 0, 0, 0, 6, 0, 0; break;}
+			default: { std::cerr << "der must be 0, 1 or 2" << std::endl; exit(0);}
+			};
+			B/=6;	
 			break;
-				}
-		default: {
-			std::cerr << "deg must be 2 or 3" << std::endl;
-			exit(0);
-				 }
+				};
+		default: { std::cerr << "deg must be 2 or 3" << std::endl; exit(0);}
 		}
+	}
+
+	template<Degree deg, Degree der>
+	Scalar PolyFormSpline<deg, der>::operator()(Scalar x) {
+		if(x < 0 || x > (deg+1)) return 0;
+		Index i = (Index) x;
+		i = i < (deg+1) ? i : deg;
+		Scalar u = x - i;
+		Vector pu = Vector::Ones(deg+1);
+		for (Index h = 0; h < deg; h++) pu(h+1) = pu(h) * u;
+		return B.row(deg-i) * pu;
 	}
 
 	template<Degree deg>
@@ -87,7 +86,7 @@ namespace absr {
 
 		Array uvw = (points/delta).array() - ijk.cast<Scalar>();
 
-		const Matrix &B = pfs.B;
+		const Matrix &B = pfs0.B;
 		Array U = Array::Ones(npts, deg+1), V = Array::Ones(npts, deg+1), W = Array::Ones(npts, deg+1);
 		for (Index h = 0; h < deg; h++) {
 			U.col(h+1) = U.col(h) * uvw.col(0);
@@ -118,7 +117,7 @@ namespace absr {
 
 	template<Degree deg>
 	void TensorBSplines<deg>::precompute_pi2(Matrix &pi2) {
-		const Matrix &d2B = pfs.d2B;
+		const Matrix &d2B = pfs2.B;
 		pi2 = INTofMULT(d2B,d2B);
 	}
 
@@ -170,7 +169,7 @@ namespace absr {
 		Index i = (Index)(pos/delta);
 		i = (i>=N-deg) ? (N-deg-1) : i;
 
-		const Matrix &B = pfs.B;
+		const Matrix &B = pfs0.B;
 		Scalar u = pos/delta - i;
 		Vector pu = Vector::Ones(deg+1);
 		for (Index h = 0; h < deg; h++) pu(h+1) = pu(h) * u;
@@ -210,7 +209,7 @@ namespace absr {
 
 	template<Degree deg>
 	void TensorBSplines<deg>::precompute_pi0pi1pi2(Matrix &pi0, Matrix &pi1, Matrix &pi2) {
-		const Matrix &B = pfs.B, &dB = pfs.dB, &d2B = pfs.d2B;
+		const Matrix &B = pfs0.B, &dB = pfs1.B, &d2B = pfs2.B;
 		pi0 = INTofMULT(B,B);
 		pi1 = INTofMULT(dB,dB);
 		pi2 = INTofMULT(d2B,d2B);
@@ -259,6 +258,7 @@ namespace absr {
 						for (Index jj = std::max(j-deg, 0); jj <= std::min(j+deg, N-1); jj++) {
 							for (Index ii = std::max(i-deg, 0); ii <= std::min(i+deg, N-1); ii++) {
 								Index column_index = kk*N*N + jj*N + ii;
+								if (column_index < row_index) continue;
 								Scalar weight = Pi2(i, ii) * Pi0(j, jj) * Pi0(k, kk) 
 									+ Pi0(i, ii) * Pi2(j, jj) * Pi0(k, kk)
 									+ Pi0(i, ii) * Pi0(j, jj) * Pi2(k, kk)
@@ -266,6 +266,7 @@ namespace absr {
 									+ Pi1(i, ii) * Pi0(j, jj) * Pi1(k, kk) * 2
 									+ Pi0(i, ii) * Pi1(j, jj) * Pi1(k, kk) * 2;
 								smooth_tripleList.push_back(Triplet(row_index, column_index, weight));
+								if (column_index > row_index) smooth_tripleList.push_back(Triplet(column_index, row_index, weight));
 							}
 						}
 					}
@@ -288,7 +289,7 @@ namespace absr {
 		k = (k>=N-deg) ? (N-deg-1) : k;
 		Scalar u = xpos/delta - i, v = ypos/delta - j, w = zpos/delta - k;
 
-		const Matrix &B = pfs.B;
+		const Matrix &B = pfs0.B;
 		Vector pu = Vector::Ones(deg+1), pv = Vector::Ones(deg+1), pw = Vector::Ones(deg+1);
 		for(Index h = 0; h < deg; h++) {
 			pu(h+1) = pu(h) * u;
@@ -327,7 +328,7 @@ namespace absr {
 
 		Array uvw = (points/delta).array() - ijk.cast<Scalar>();
 
-		const Matrix &B = pfs.B;
+		const Matrix &B = pfs0.B;
 		Array U = Array::Ones(npts, deg+1), V = Array::Ones(npts, deg+1), W = Array::Ones(npts, deg+1);
 		for (Index h = 0; h < deg; h++) {
 			U.col(h+1) = U.col(h) * uvw.col(0);
@@ -378,8 +379,8 @@ namespace absr {
 			k = (k>=N-deg) ? (N-deg-1) : k;
 			Scalar u = xpos/delta - i, v = ypos/delta - j, w = zpos/delta - k;
 
-			const Matrix &B = pfs.B;
-			const Matrix &dB = pfs.dB;
+			const Matrix &B = pfs0.B;
+			const Matrix &dB = pfs1.B;
 			Vector pu = Vector::Ones(deg+1), pv = Vector::Ones(deg+1), pw = Vector::Ones(deg+1);
 			for(Index h = 0; h < deg; h++) {
 				pu(h+1) = pu(h) * u;
@@ -429,8 +430,8 @@ namespace absr {
 
 			Array uvw = (points/delta).array() - ijk.cast<Scalar>();
 
-			const Matrix &B = pfs.B;
-			const Matrix &dB = pfs.dB;
+			const Matrix &B = pfs0.B;
+			const Matrix &dB = pfs1.B;
 			Array U = Array::Ones(npts, deg+1), V = Array::Ones(npts, deg+1), W = Array::Ones(npts, deg+1);
 			for (Index h = 0; h < deg; h++) {
 				U.col(h+1) = U.col(h) * uvw.col(0);

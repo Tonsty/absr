@@ -51,7 +51,7 @@ TransformMat prepare_points_normals(PointSet &points, NormalSet &normals,
 //		fitter.set_parameters(lambda, kappa);
 //		fitter.fitting(tbs);
 //}
-//
+
 //void test_active_3L_fitting(const PointSet &points, const NormalSet &normals, 
 //	Scalar lambda, Scalar epsilon, ActiveTBS<2> &atbs) {
 //		ActiveTBSFitting3L fitter(points, normals);
