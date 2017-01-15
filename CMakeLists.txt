@@ -8,6 +8,7 @@ MESSAGE(STATUS "This is SOURCE dir " ${PROJECT_SOURCE_DIR})
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #LIST(APPEND CMAKE_CXX_FLAGS -std=c++11)
+ADD_DEFINITIONS(-DABSR_PREINSTANTIATE)
 
 IF(CMAKE_HOST_UNIX)
 	# Set a default build type if none was specified
@@ -45,6 +46,9 @@ SET(MATLAB_LIBARIES "D:/Program Files/MATLAB/R2013a/extern/lib/win64/microsoft/l
 					"D:/Program Files/MATLAB/R2013a/extern/lib/win64/microsoft/libmx.lib"
 					"D:/Program Files/MATLAB/R2013a/extern/lib/win64/microsoft/libmex.lib"
 					"D:/Program Files/MATLAB/R2013a/extern/lib/win64/microsoft/libeng.lib")
+ELSE(WITH_MATLAB)
+SET(MATLAB_INCLUDE_DIR "")
+SET(MATLAB_LIBARIES "")	
 ENDIF(WITH_MATLAB)
 ENDIF(CMAKE_HOST_WIN32)
 
@@ -69,31 +73,37 @@ INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR}
 	      			include)
 
 SET(ABSR_INCLUDES include/tbsfitting.h
+				  include/tbsfitting.hpp
 				  include/boundingbox.h
-				  include/bspline.h
 				  include/typedefs.h
 				  include/io.h
-				  include/sdf
+				  include/sdf.h
 				  include/tensorbsplines.h
+				  include/tensorbsplines.hpp
 				  include/activetbs.h
+				  include/activetbs.hpp
 				  include/activetbsfitting.h
+				  include/activetbsfitting.hpp
 				  include/hierarchicaltbs.h
+				  include/hierarchicaltbs.hpp
+				  include/hierarchicaltbsfitting.h
+				  include/hierarchicaltbsfitting.hpp
 				  include/fastmarching.h
 				  include/polygonizer.h
-				  include/polygonizer.hpp) 
-SET(ABSR_SOURCES src/tbsfitting.cpp 
-				 src/main.cpp
+				  include/polygonizer.hpp
+				  include/vtk_help.h
+				  include/test.h) 
+SET(ABSR_SOURCES src/main.cpp
 				 src/boundingbox.cpp
-				 src/bspline.cpp
 				 src/io.cpp
-				 src/sdf.cpp
-				 src/tensorbsplines.cpp
-				 src/activetbs.cpp
-				 src/activetbsfitting.h				 
-				 src/hierarchicaltbs.cpp
+				 src/sdf.cpp			 
 				 src/fastmarching.cpp
 				 src/polygonizer.c
-				 src/polygonizer.cpp)
+				 src/polygonizer.cpp
+				 src/tensorbsplines.cpp
+				 src/test.cpp
+				 src/instantiate.cpp
+				 src/vtk_help.cpp)
 
 ADD_EXECUTABLE(absr ${ABSR_INCLUDES} ${ABSR_SOURCES})
 TARGET_LINK_LIBRARIES(absr ${VTK_LIBRARIES} ${MATLAB_LIBARIES})
