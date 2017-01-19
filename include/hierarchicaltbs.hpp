@@ -105,51 +105,117 @@ namespace absr {
 	}
 
 	template<Degree deg>
-	static void HierarchicalTBS<deg>::make_smooth_triplelist(const MapVecType &amps, const Index row_level, const Index column_level,
-		const Index row_start_index, const Index column_start_index, std::vector<Triplet> &smooth_triplelist, const Size root_N) {
+	void HierarchicalTBS<deg>::make_smooth_triplelist(const MapVecType &amps, const Index row_level, const Index column_level, 
+		const Index row_start_index, const Index column_start_index, std::vector<Triplet> &smooth_triplelist, 
+		const std::vector<Vector> &ti0s, const std::vector<Vector> &ti1s, const std::vector<Vector> &ti2s, const Size root_N) {
+		
+		const MapType &column_amp = amps[column_level];
+		const MapType &row_amp = amps[row_level];
 
+		const Size column_N = ((root_N-deg)<<column_level) + deg;
+		const Size row_N = ((root_N-deg)<<row_level) + deg;
+
+		Scalar delta = (Scalar) 1.0/(column_N-deg);
+		Scalar delta3 = delta * delta * delta;
+
+		for (auto column_amp_it = column_amp.begin(); column_amp_it != column_amp.end(); column_amp_it++) {
+			Index virtual_column_index = column_amp_it->first;
+			Index real_column_index = column_amp_it->second;
+
+			Index column_k = virtual_column_index/(column_N*column_N);
+			virtual_column_index -= column_k*column_N*column_N;
+			Index column_j = virtual_column_index/column_N;
+			virtual_column_index -= column_j*column_N;
+			Index column_i = virtual_column_index;
+
+			Index level_diff = column_level - row_level;
+			Index row_k = (column_k + (deg<<level_diff) - deg) >> level_diff;
+			Index row_j = (column_j + (deg<<level_diff) - deg) >> level_diff;
+			Index row_i = (column_i + (deg<<level_diff) - deg) >> level_diff;
+
+			for (Index kk = std::max(row_k-deg, 0); kk <= std::min(row_k+deg, row_N-1); kk++) {
+				for (Index jj = std::max(row_j-deg, 0); jj <= std::min(row_j+deg, row_N-1); jj++) {
+					for (Index ii = std::max(row_i-deg, 0); ii <= std::min(row_i+deg, row_N-1); ii++) {
+
+						Index t_k_index = (column_k + (deg<<level_diff) - deg) - (kk<<level_diff) + deg;
+						Index t_j_index = (column_j + (deg<<level_diff) - deg) - (jj<<level_diff) + deg;
+						Index t_i_index = (column_i + (deg<<level_diff) - deg) - (ii<<level_diff) + deg;
+
+						if (t_k_index>=0 && t_j_index>=0 && t_i_index>=0) {
+							Index virtual_row_index = kk * row_N * row_N + jj * row_N + ii;
+							auto row_amp_it = row_amp.find(virtual_row_index);
+							if (row_amp_it != row_amp.end()) {
+								Index real_row_index = row_amp_it->second;
+								Scalar weight = ti2s[level_diff](t_i_index) * ti0s[level_diff](t_j_index) * ti0s[level_diff](t_k_index) 
+									+ ti0s[level_diff](t_i_index) * ti2s[level_diff](t_j_index) * ti0s[level_diff](t_k_index) 
+									+ ti0s[level_diff](t_i_index) * ti0s[level_diff](t_j_index) * ti2s[level_diff](t_k_index) 
+									+ ti1s[level_diff](t_i_index) * ti1s[level_diff](t_j_index) * ti0s[level_diff](t_k_index) * 2
+									+ ti1s[level_diff](t_i_index) * ti0s[level_diff](t_j_index) * ti1s[level_diff](t_k_index) * 2
+									+ ti0s[level_diff](t_i_index) * ti1s[level_diff](t_j_index) * ti1s[level_diff](t_k_index) * 2;
+								weight *= delta3;
+								smooth_triplelist.push_back(Triplet(real_row_index + row_start_index, 
+									real_column_index + column_start_index, weight));
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	template<Degree deg>
-	void HierarchicalTBS<deg>::make_smooth_mat_vec(const MapVecType &amps, SparseMatrix &global_smooth_mat, const Vector &controls,
+	void HierarchicalTBS<deg>::make_smooth_mat_vec(const MapVecType &amps, std::vector<Triplet> &global_smooth_triplelist, const Vector &controls,
 		const Index currentlevel, SparseMatrix &smooth_mat, Vector &smooth_vec, 
-		std::vector<Vector> &ti0s, std::vector<Vector> &ti1s, std::vector<Vector> &ti2s, const Size root_N) {
+		const std::vector<Vector> &ti0s, const std::vector<Vector> &ti1s, const std::vector<Vector> &ti2s, const Size root_N) {
 
-			const Size current_N = (root_N-deg)*(1<<currentlevel) + deg;
 			const MapType &amp = amps[currentlevel];
 
-			Vector t0, t1, t2;
-			HierarchicalTBS<deg>::precompute_ti0ti1ti2(currentlevel, t0, t1, t2);
-
 			if (currentlevel == 0) {
-				ActiveTBS<deg>::make_smooth_mat(amp, smooth_mat, current_N);
+				HierarchicalTBS<deg>::make_smooth_triplelist(amps, 0, 0, 0, 0, global_smooth_triplelist, ti0s, ti1s, ti2s, root_N);
+				smooth_mat.resize(amp.size(), amp.size());
+				smooth_mat.setFromTriplets(global_smooth_triplelist.begin(), global_smooth_triplelist.end());
 				smooth_vec = Vector::Zero(amp.size());
-				global_smooth_mat = smooth_mat;
 			} else {
-				const SparseMatrix &A = global_smooth_mat;
+				SparseMatrix A(controls.size(), controls.size());
+				A.setFromTriplets(global_smooth_triplelist.begin(), global_smooth_triplelist.end());
 
 				std::vector<Triplet> B_tripleList;
 				Size B_rows_cnt = 0;
-				for (Index level = 0; level < currentlevel-1; level++) {
-					const MapType &amp_pre = amps[level];
-
-					B_rows_cnt += (Size) amp_pre.size();
+				for (Index level = 0; level < currentlevel; level++) {
+					HierarchicalTBS<deg>::make_smooth_triplelist(amps, level, currentlevel, B_rows_cnt, 0, B_tripleList, ti0s, ti1s, ti2s, root_N);
+					B_rows_cnt += (Size) amps[level].size();
 				}
 				SparseMatrix B(B_rows_cnt, amp.size());
 				B.setFromTriplets(B_tripleList.begin(), B_tripleList.end());
 
+				std::vector<Triplet> C_tripleList;
+				HierarchicalTBS<deg>::make_smooth_triplelist(amps, currentlevel, currentlevel, 0, 0, C_tripleList, ti0s, ti1s, ti2s, root_N);
 				SparseMatrix C(amp.size(), amp.size());
-				ActiveTBS<deg>::make_smooth_mat(amp, C, current_N);
+				C.setFromTriplets(C_tripleList.begin(), C_tripleList.end());
 
 				Eigen::SparseMatrix<Scalar, Eigen::RowMajor> BC(B_rows_cnt + amp.size(), amp.size());
 				BC.topRows(B_rows_cnt) = B; BC.bottomRows(amp.size()) = C;
 
-				Eigen::SparseMatrix<Scalar, Eigen::RowMajor> AB(B_rows_cnt + amp.size(), B_rows_cnt);
-				AB.topRows(B_rows_cnt) = A; AB.bottomRows(amp.size()) = B.transpose();
+				Eigen::SparseMatrix<Scalar, Eigen::RowMajor> ABt(B_rows_cnt + amp.size(), B_rows_cnt);
+				ABt.topRows(B_rows_cnt) = A; ABt.bottomRows(amp.size()) = B.transpose();
 
 				smooth_mat = BC.transpose() * BC;
-				smooth_vec = -BC.transpose() * (AB * controls); 
+				smooth_vec = -BC.transpose() * (ABt * controls); 
+
+				std::vector<Triplet> newB_tripleList, newBt_tripleList;
+				for (auto B_it = B_tripleList.begin(); B_it != B_tripleList.end(); B_it++) {
+					newB_tripleList.push_back(Triplet(B_it->row(), B_it->col() + B_rows_cnt, B_it->value()));
+					newBt_tripleList.push_back(Triplet(B_it->col() + B_rows_cnt, B_it->row(), B_it->value()));
+				}
+
+				global_smooth_triplelist.insert(global_smooth_triplelist.end(), newB_tripleList.begin(), newB_tripleList.end());
+				global_smooth_triplelist.insert(global_smooth_triplelist.end(), newBt_tripleList.begin(), newBt_tripleList.end());
+
+				std::vector<Triplet> newC_tripleList;
+				for (auto C_it = C_tripleList.begin(); C_it != C_tripleList.end(); C_it++) {
+					newC_tripleList.push_back(Triplet(C_it->row() + B_rows_cnt, C_it->col() + B_rows_cnt, C_it->value()));
+				}
+				global_smooth_triplelist.insert(global_smooth_triplelist.end(), newC_tripleList.begin(), newC_tripleList.end());
 			}
-			ti0s.push_back(t0); ti1s.push_back(t1); ti2s.push_back(t2);
 	}
 };

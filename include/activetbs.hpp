@@ -105,7 +105,7 @@ namespace absr {
 				auto amp_it = amp.find(virtual_column_index);
 				if(amp_it == amp.end()) {
 					std::cerr << "make_data_mat: visit inactive regions" << std::endl;
-					exit(0);
+					//exit(0);
 				} else {
 					Index real_column_index = amp_it->second;
 					Scalar weight = it->second;

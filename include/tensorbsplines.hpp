@@ -26,7 +26,7 @@ namespace absr {
 			};
 			B/=2;
 			break;
-				};
+			};
 		case 3: {
 			B.resize(4, 4);
 			switch(der) {
@@ -37,7 +37,7 @@ namespace absr {
 			};
 			B/=6;	
 			break;
-				};
+			};
 		default: { std::cerr << "deg must be 2 or 3" << std::endl; exit(0);}
 		}
 	}

@@ -92,7 +92,8 @@ SET(ABSR_INCLUDES include/tbsfitting.h
 				  include/polygonizer.h
 				  include/polygonizer.hpp
 				  include/vtk_help.h
-				  include/test.h) 
+				  include/test.h
+				  include/math_help.h) 
 SET(ABSR_SOURCES src/main.cpp
 				 src/boundingbox.cpp
 				 src/io.cpp
@@ -103,7 +104,8 @@ SET(ABSR_SOURCES src/main.cpp
 				 src/tensorbsplines.cpp
 				 src/test.cpp
 				 src/instantiate.cpp
-				 src/vtk_help.cpp)
+				 src/vtk_help.cpp
+				 src/math_help.cpp)
 
 ADD_EXECUTABLE(absr ${ABSR_INCLUDES} ${ABSR_SOURCES})
 TARGET_LINK_LIBRARIES(absr ${VTK_LIBRARIES} ${MATLAB_LIBARIES})

@@ -9,7 +9,7 @@
 using namespace absr;
 
 int gsave = 0;
-int guse_vtk_mc = false;
+int guse_vtk_mc = true;
 
 int main(int argc, char** argv) {
 
