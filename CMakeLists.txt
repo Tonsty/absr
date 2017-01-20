@@ -103,9 +103,13 @@ SET(ABSR_SOURCES src/main.cpp
 				 src/polygonizer.cpp
 				 src/tensorbsplines.cpp
 				 src/test.cpp
-				 src/instantiate.cpp
 				 src/vtk_help.cpp
-				 src/math_help.cpp)
+				 src/math_help.cpp
+				 src/tbsfitting.cpp
+				 src/activetbs.cpp
+				 src/activetbsfitting.cpp
+				 src/hierarchicaltbs.cpp
+				 src/hierarchicaltbsfitting.cpp)
 
 ADD_EXECUTABLE(absr ${ABSR_INCLUDES} ${ABSR_SOURCES})
 TARGET_LINK_LIBRARIES(absr ${VTK_LIBRARIES} ${MATLAB_LIBARIES})
