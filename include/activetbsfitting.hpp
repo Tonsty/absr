@@ -10,7 +10,9 @@ namespace absr {
 		const Scalar epsilon = epsilon_;
 		const Size N = atbs.N_;
 		const Size npts = (Size) points.rows();
+
 		MapType &amp = atbs.amp_;
+		Vector &controls = atbs.controls_;
 
 		PointSet points_3L(npts*3, 3);
 		points_3L << points, points+epsilon*normals, points-epsilon*normals;
@@ -33,7 +35,7 @@ namespace absr {
 
 		Eigen::ConjugateGradient<SparseMatrix> cg;
 		cg.compute(left_mat);
-		atbs.controls_ = cg.solve(right_vec);
+		controls = cg.solve(right_vec);
 
 		std::cerr << "finished solving active 3L" << std::endl;
 	}
@@ -46,7 +48,9 @@ namespace absr {
 		const Scalar kappa = kappa_;
 		const Size N = atbs.N_;
 		const Size npts = (Size) points.rows();
+
 		MapType &amp = atbs.amp_;
+		Vector &controls = atbs.controls_;
 
 		ActiveTBS<deg>::generate_active_map(amp, points, N);
 
@@ -70,9 +74,53 @@ namespace absr {
 
 		Eigen::ConjugateGradient<SparseMatrix> cg;
 		cg.compute(left_mat);
-		atbs.controls_ = cg.solve(right_vec);
+		controls = cg.solve(right_vec);
 
 		std::cerr << "finished solving active Juttler" << std::endl;
+	}
+
+	template<Degree deg>
+	void ActiveTBSFittingSDF::fitting(ActiveTBS<deg> &atbs) {
+		const PointSet &points = points_;
+		const SDF &sdf = sdf_;
+		const Scalar lambda = lambda_;
+		const Size N = atbs.N_;
+		const Size npts = (Size) points.rows();
+
+		MapType &amp = atbs.amp_;
+		Vector &controls = atbs.controls_;
+
+		const Vector &values_extra = sdf.values_;
+		PointSet points_extra;
+		sdf_.topoints(points_extra);
+		Scalar extra_kappa = 0.01;
+
+		ActiveTBS<deg>::generate_active_map(amp, points, N);
+
+		SparseMatrix data_mat;
+		ActiveTBS<deg>::make_data_mat(amp, points, data_mat, N);
+
+		SparseMatrix extra_data_mat;
+		ActiveTBS<deg>::make_data_mat(amp, points_extra, extra_data_mat, N);
+
+		SparseMatrix smooth_mat; 
+		ActiveTBS<deg>::make_smooth_mat(amp, smooth_mat, N);
+
+		SparseMatrix left_mat = data_mat.transpose() * data_mat +
+			extra_data_mat.transpose() * extra_data_mat * extra_kappa +
+			smooth_mat * lambda * npts;
+
+		Vector right_vec = extra_data_mat.transpose() * values_extra * extra_kappa;
+
+		std::cerr << "\nbegin solving active SDF" << std::endl;
+		std::cerr << "equation number = 1, equation size = " << npts << " * " << amp.size() << std::endl;
+
+		Eigen::ConjugateGradient<SparseMatrix> cg;
+		cg.compute(left_mat);
+		controls = cg.solve(right_vec);
+
+		std::cerr << "finished solving active SDF" << std::endl;
+
 	}
 };
 

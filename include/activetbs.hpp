@@ -104,7 +104,7 @@ namespace absr {
 				Index virtual_column_index = it->first;
 				auto amp_it = amp.find(virtual_column_index);
 				if(amp_it == amp.end()) {
-					std::cerr << "make_data_mat: visit inactive regions" << std::endl;
+					//std::cerr << "make_data_mat: visit inactive regions" << std::endl;
 					//exit(0);
 				} else {
 					Index real_column_index = amp_it->second;
@@ -126,9 +126,9 @@ namespace absr {
 		Matrix Pi0, Pi1, Pi2;
 		TensorBSplines<deg>::precompute_Pi0Pi1Pi2(Pi0, Pi1, Pi2, N);
 
-		//std::cerr << "Pi0 = \n" << Pi0 << std::endl;
-		//std::cerr << "Pi1 = \n" << Pi1 << std::endl;
-		//std::cerr << "Pi2 = \n" << Pi2 << std::endl;
+		std::cerr << "Pi0 = \n" << Pi0 << std::endl;
+		std::cerr << "Pi1 = \n" << Pi1 << std::endl;
+		std::cerr << "Pi2 = \n" << Pi2 << std::endl;
 
 		std::vector<Triplet> smooth_tripleList;
 		Size cnt = 0;

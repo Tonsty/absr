@@ -26,6 +26,16 @@ namespace absr {
 		}
 		return C;
 	}
-
 };
+
+#ifdef ABSR_PREINSTANTIATE
+
+#include <tensorbsplines.hpp>
+
+using namespace absr;
+
+template struct TensorBSplines<2>;
+//template struct TensorBSplines<3>;
+
+#endif
 

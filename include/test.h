@@ -20,11 +20,17 @@ void test_3L_fitting(const PointSet &points, const NormalSet &normals,
 void test_Juttler_fitting(const PointSet &points, const NormalSet &normals, 
 	Scalar lambda, Scalar kappa, TensorBSplines<2> &tbs);
 
+void test_active_sdf_fitting(const PointSet &points, const NormalSet &normals, 
+	Scalar lambda, Scalar narrow_band_width, Size sdf_grid_size, ActiveTBS<2> &atbs);
+
 void test_active_3L_fitting(const PointSet &points, const NormalSet &normals, 
 	Scalar lambda, Scalar epsilon, ActiveTBS<2> &atbs);
 
 void test_active_Juttler_fitting(const PointSet &points, const NormalSet &normals, 
 	Scalar lambda, Scalar kappa, ActiveTBS<2> &atbs);
+
+void test_hierarchical_sdf_fitting(const PointSet &points, const NormalSet &normals, 
+	Scalar lambda, Scalar narrow_band_width, Size sdf_grid_size, HierarchicalTBS<2> &htbs);
 
 void test_hierarchical_3L_fitting(const PointSet &points, const NormalSet &normals, 
 	Scalar lambda, Scalar epsilon, HierarchicalTBS<2> &htbs);

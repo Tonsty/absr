@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
 
 	//ActiveTBS<2> atbs(N);
 	//switch(method) {
-	//case 0 : {exit(0); break;}
+	//case 0 : {test_active_sdf_fitting(points, normals, lambda, narrow_band_width, sdf_grid_size, atbs); break;}
 	//case 1 : {test_active_3L_fitting(points, normals, lambda, epsilon, atbs); break;}
 	//case 2 : {test_active_Juttler_fitting(points, normals, lambda, kappa, atbs); break;}
 	//}
@@ -85,9 +85,9 @@ int main(int argc, char** argv) {
 	//}
 
 	Size L = N;
-	HierarchicalTBS<2> htbs(L);
+	HierarchicalTBS<2> htbs(L, 2+16);
 	switch(method) {
-	case 0 : {exit(0); break;}
+	case 0 : {test_hierarchical_sdf_fitting(points, normals, lambda, narrow_band_width, sdf_grid_size, htbs); break;}
 	case 1 : {test_hierarchical_3L_fitting(points, normals, lambda, epsilon, htbs); break;}
 	case 2 : {test_hierarchical_Juttler_fitting(points, normals, lambda, kappa, htbs); break;}
 	}

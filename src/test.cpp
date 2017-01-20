@@ -52,6 +52,25 @@ TransformMat prepare_points_normals(PointSet &points, NormalSet &normals,
 //		fitter.fitting(tbs);
 //}
 
+//void test_active_sdf_fitting(const PointSet &points, const NormalSet &normals, 
+//	Scalar lambda, Scalar narrow_band_width, Size sdf_grid_size, ActiveTBS<2> &atbs) 
+//{	
+//	SDF sdf;
+//	sdf.grid_size_ = sdf_grid_size;
+//	sdf.voxel_length_ = (Scalar) 1.0/(sdf.grid_size_-1);
+//	FastMarching fm;
+//	fm.grid_size_ = sdf.grid_size_;
+//	fm.voxel_length_ = sdf.voxel_length_;
+//	fm.compute(points, narrow_band_width);
+//	fm.tagging();
+//	sdf.values_.swap(fm.values_);
+//	if(gsave) savesdf(sdf, "volume.vti");
+//
+//	ActiveTBSFittingSDF fitter(points, sdf);
+//	fitter.set_parameters(lambda);
+//	fitter.fitting(atbs);
+//}
+//
 //void test_active_3L_fitting(const PointSet &points, const NormalSet &normals, 
 //	Scalar lambda, Scalar epsilon, ActiveTBS<2> &atbs) {
 //		ActiveTBSFitting3L fitter(points, normals);
@@ -65,6 +84,24 @@ TransformMat prepare_points_normals(PointSet &points, NormalSet &normals,
 //		fitter.set_parameters(lambda, kappa);
 //		fitter.fitting(atbs);
 //}
+
+void test_hierarchical_sdf_fitting(const PointSet &points, const NormalSet &normals, 
+	Scalar lambda, Scalar narrow_band_width, Size sdf_grid_size, HierarchicalTBS<2> &htbs) {
+		SDF sdf;
+		sdf.grid_size_ = sdf_grid_size;
+		sdf.voxel_length_ = (Scalar) 1.0/(sdf.grid_size_-1);
+		FastMarching fm;
+		fm.grid_size_ = sdf.grid_size_;
+		fm.voxel_length_ = sdf.voxel_length_;
+		fm.compute(points, narrow_band_width);
+		fm.tagging();
+		sdf.values_.swap(fm.values_);
+		if(gsave) savesdf(sdf, "volume.vti");
+		
+		HierarchicalTBSFittingSDF fitter(points, sdf);
+		fitter.set_parameters(lambda);
+		fitter.fitting(htbs);
+}
 
 void test_hierarchical_3L_fitting(const PointSet &points, const NormalSet &normals, 
 	Scalar lambda, Scalar epsilon, HierarchicalTBS<2> &htbs) {

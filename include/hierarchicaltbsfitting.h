@@ -2,6 +2,7 @@
 #define HIERARCHICALTBSFITTING_H
 
 #include <typedefs.h>
+#include <sdf.h>
 #include <hierarchicaltbs.h>
 
 namespace absr {
@@ -38,6 +39,21 @@ namespace absr {
 		NormalSet normals_;
 		Scalar lambda_;
 		Scalar kappa_;
+	};
+
+	class HierarchicalTBSFittingSDF {
+	public:
+		HierarchicalTBSFittingSDF(const PointSet &points, const SDF &sdf) 
+			: points_(points), sdf_(sdf), lambda_((Scalar) 0.1) {}
+		void set_parameters(Scalar lambda) {
+			lambda_ = lambda;
+		}
+		template<Degree deg>
+		void fitting(HierarchicalTBS<deg> &atbs);
+	protected:
+		PointSet points_;
+		SDF sdf_;
+		Scalar lambda_;
 	};
 };
 
